@@ -101,7 +101,11 @@ Any new API introduced should be implemented by all the 3rd party module and RDK
 
 ## MoCA HAL or Product Customization
 
-None
+The product can be configured via the following compile time defines:
+
+```c
+MOCA_VAR  #Disable the MoCA Variables
+```
 
 ## Interface API Documentation
 

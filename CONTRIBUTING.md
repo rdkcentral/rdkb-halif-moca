@@ -1,8 +1,9 @@
 # Contributing
 
-- If you wish to make code contributions to this project, the source is hosted at [github.com/rdkcentral/rdkb-halif-wan](https://github.com/rdkcentral/rdkb-halif-wan).
+- If you wish to make code contributions to this project, the source is hosted at [github.com/rdkcentral/rdkb-halif-moca](https://github.com/rdkcentral/rdkb-halif-moca).
 
-You can submit your changes for review via that site, by raising an issue in github, (https://github.com/rdkcentral/rdkb-halif-wan/issues), and following the sequence below.
+You can submit your changes for review via that site, by raising an issue in github, (https://github.com/rdkcentral/rdkb-halif-moca/issues), and following the sequence
+below.
 
 - Create a branch with a name and follow the guidelines gh(x)_(synopsis)
 - where x is the ticket number
