@@ -7,7 +7,7 @@
 - `OEM` \- Original Equipment Manufacture
 - `MoCA` \- Multimedia over Coax Alliance
 
-# Description
+## Description
 
 The diagram below describes a high-level software architecture of the MoCA HAL module stack.
 
@@ -15,9 +15,9 @@ The diagram below describes a high-level software architecture of the MoCA HAL m
 
 MoCA HAL is an abstraction layer, implemented to interacting with MoCA driver on CPE to get/set the specific details such as MoCA configurations, Interface informations such as static and dynamic, Associated Device informations, Get list of all the Nodes Connected on MoCA Network, etc. This HAL layer will be used by the CcspMoCA component currently.
 
-# Component Runtime Execution Requirements
+## Component Runtime Execution Requirements
 
-## Initialization and Startup
+### Initialization and Startup
 
 RDK-B MoCA HAL is to initialize the MoCA interface on the device. This involves opening the MoCA interface and configuring its settings, such as the frequency band, channel selection, and encryption settings. The HAL provides a set of APIs that allow the developer to interact with the MoCA hardware and configure the interface.
 
@@ -31,7 +31,7 @@ The below HAL API's are not called on bootup but the below API's are used at run
 - `moca_GetNumAssociatedDevices()`
 - `moca_FreqMaskToValue()`
 
-It is upto the 3rd party vendors to handle it appropriately to meet operational requirements. Failure to meet these requirements will likely result in undefined and unexpected behaviour.
+Third party vendors will implement appropriately to meet operational requirements. This interface is expected to block if the hardware is not ready.
 
 ## Theory of operation
 
@@ -39,10 +39,15 @@ Broadband MoCA HAL is to provide a standardized interface that allows developers
 
 ## Threading Model
 
-MoCA HAL is not thread safe, any module which is invoking the MoCA HAL api should ensure calls are made in a thread safe manner.
+MoCA HAL is not thread safe.
 
-Different 3rd party vendors allowed to create internal threads to meet the operational requirements. In this case 3rd party implementations
-should be responsible to synchronize between the calls, events and cleanup the thread.
+Any module which is invoking the MoCA HAL api should ensure calls are made in a thread safe manner.
+
+Vendors can create internal threads/events to meet their operation requirements. These should be responsible to synchronize between the calls, events and cleaned up on closure.
+
+## Process Model
+
+All API's are expected to be called from multiple process.
 
 ## Memory Model
 
@@ -50,18 +55,26 @@ MoCA HAL client module is responsible to allocate and deallocate memory for nece
 
 Different 3rd party vendors allowed to allocate memory for internal operational requirements. In this case 3rd party implementations should be responsible to deallocate internally.
 
+TODO:
+State a footprint requirement. Example: This should not exceed XXXX KB.
+
 ## Power Management Requirements
 
 The MoCA HAL is not involved in any of the power management operation. Any power management state transitions MUST not affect the operation of the MoCA HAL.
 
 ## Asynchronous Notification Model
-None
+
+There are no asynchronous notifications.
 
 ## Blocking calls
 
 MoCA HAL API's are expected to work synchronously and should complete within a time period commensurate with the complexity of the operation and in accordance with any relevant specification.
 
 Any calls that can fail due to the lack of a response should have a timeout period in accordance with any relevant documentation.
+The upper layers will call this API from a single thread context, this API should not suspend.
+
+TODO:
+As we state that they should complete within a time period, we need to state what that time target is, and pull it from the spec if required. Define the timeout requirement.
 
 ## Internal Error Handling
 
@@ -77,7 +90,13 @@ Following non functional requirement should be supported by the MoCA HAL compone
 
 ## Logging and debugging requirements
 
-MoCA HAL component should log all the error and critical informative messages which helps to debug/triage the issues and understand the functional flow of the system.
+MoCA HAL component should log all the error and critical informative messages, preferably using syslog, printf which helps to debug/triage the issues and understand the functional flow of the system.
+
+The logging should be consistent across all HAL components.
+
+If the vendor is going to log then it has to be logged in `xxx_vendor_hal.log` file name which can be placed in `/rdklogs/logs/` or `/var/tmp/` directory.
+
+Logging should be defined with log levels as per Linux standard logging.
 
 ## Memory and performance requirements
 
@@ -85,19 +104,21 @@ Make sure MoCA HAL is not contributing more to memory and CPU utilization while 
 
 ## Quality Control
 
-MoCA HAL implementation should pass Coverity, Black duck scan, valgrind checks without any issue. There should not be any memory leaks/corruption introduced by HAL and underneath 3rd party software implementation.
+MoCA HAL implementation should pass checks using any third party tools like `Coverity`, `Black duck`, `Valgrind` etc. without any issue to ensure quality. There should not be any memory leaks/corruption introduced by HAL and underneath 3rd party software implementation.
 
 ## Licensing
 
-MoCA HAL implementation is expected to released under the Apache License.
+MoCA HAL implementation is expected to released under the Apache License 2.0
 
 ## Build Requirements
 
-MoCA HAL source code should be build under Linux Yocto environment and should be delivered as a static library libhal_moca.
+MoCA HAL source code should be able to be built under Linux Yocto environment and should be delivered as a static library `libhal_moca`.
 
 ## Variability Management
 
-Any new API introduced should be implemented by all the 3rd party module and RDK generic code should be compatible with specific version of MoCA HAL software
+Changes to the interface will be controlled by versioning, vendors will be expected to implement to a fixed version of the interface, and based on SLA agreements move to later versions as demand requires.
+
+Each API interface will be versioned using [Semantic Versioning 2.0.0](https://semver.org/), the vendor code will comply with a specific version of the interface.
 
 ## MoCA HAL or Product Customization
 
@@ -109,16 +130,16 @@ MOCA_VAR  #Disable the MoCA Variables
 
 ## Interface API Documentation
 
-All HAL function prototypes and datatype definitions are available in moca_hal.h file.
+All HAL function prototypes and datatype definitions are available in `moca_hal.h` file.
 
-1. Components/Process must include moca_hal.h to make use of moca hal capabilities.
-2. Components/Process should add linker dependency for libhal_moca.
+1.  Components/Process must include `moca_hal.h` to make use of moca hal capabilities.
+2.  Components/Process should add linker dependency for `libhal_moca`.
 
 ## Theory of operation and key concepts
 
 Covered as per "Description" sections in the API documentation.
 
-#### Sequence Diagram
+## Sequence Diagram
 
 ```mermaid
 sequenceDiagram

@@ -818,6 +818,16 @@ void moca_associatedDevice_callback_register(moca_associatedDevice_callback call
  *  MoCA Subsystem level function prototypes
  *
 **********************************************************************************/
+
+/*
+ * TODO:
+ *
+ * 1. Extend the return codes by listing out the possible reasons of failure, to improve the interface in the future.
+ *    This was reported during the review for header file migration to opensource github.
+ *
+ */
+
+
 /* moca_GetIfConfig() function */
 /**
 * @brief Gets the MoCA Configuration Parameters that were previously set.
@@ -830,14 +840,7 @@ void moca_associatedDevice_callback_register(moca_associatedDevice_callback call
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-*
-* @remark The caller is responsible for providing a valid memory location for the pmoca_config parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
-*
 * @execution Synchronous.
-*
-* @note This function must not suspend and must not invoke any blocking system calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_GetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
@@ -855,13 +858,9 @@ INT moca_GetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
 * @retval STATUS_FAILURE if any error is detected.
 *
 *
-* @remark The caller is responsible for providing a valid memory location for the pmoca_config parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_SetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
@@ -877,13 +876,9 @@ INT moca_SetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for providing a valid memory location for the pmoca_dynamic_info parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_IfGetDynamicInfo(ULONG ifIndex, moca_dynamic_info_t *pmoca_dynamic_info);
@@ -899,13 +894,9 @@ INT moca_IfGetDynamicInfo(ULONG ifIndex, moca_dynamic_info_t *pmoca_dynamic_info
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for providing a valid memory location for the pmoca_static_info parameter.
-*         The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking system calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_IfGetStaticInfo(ULONG ifIndex, moca_static_info_t *pmoca_static_info);
@@ -921,13 +912,9 @@ INT moca_IfGetStaticInfo(ULONG ifIndex, moca_static_info_t *pmoca_static_info);
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for providing a valid memory location for the pmoca_stats parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking system calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_IfGetStats(ULONG ifIndex, moca_stats_t *pmoca_stats);
@@ -944,13 +931,9 @@ INT moca_IfGetStats(ULONG ifIndex, moca_stats_t *pmoca_stats);
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for allocating memory for the 'pulCount' variable.
-*         \n The function will store the result in the memory location pointed to by 'pulCount'.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_GetNumAssociatedDevices(ULONG ifIndex, ULONG *pulCount);
@@ -966,13 +949,9 @@ INT moca_GetNumAssociatedDevices(ULONG ifIndex, ULONG *pulCount);
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for providing a valid memory location for the pmoca_mac_counters parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_IfGetExtCounter(ULONG ifIndex, moca_mac_counters_t *pmoca_mac_counters);
@@ -988,13 +967,9 @@ INT moca_IfGetExtCounter(ULONG ifIndex, moca_mac_counters_t *pmoca_mac_counters)
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for providing a valid memory location for the pmoca_aggregate_counts parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_IfGetExtAggrCounter(ULONG ifIndex, moca_aggregate_counters_t *pmoca_aggregate_counts);
@@ -1012,12 +987,8 @@ INT moca_IfGetExtAggrCounter(ULONG ifIndex, moca_aggregate_counters_t *pmoca_agg
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected
 *
-* @remark The caller is responsible for allocating and freeing the memory for the cpes array.
-*
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_GetMocaCPEs(ULONG ifIndex, moca_cpe_t *cpes, INT *pnum_cpes);
@@ -1033,13 +1004,9 @@ INT moca_GetMocaCPEs(ULONG ifIndex, moca_cpe_t *cpes, INT *pnum_cpes);
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected
 *
-* @remark The caller is responsible for providing a valid memory location for the ppdevice_array parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_GetAssociatedDevices(ULONG ifIndex, moca_associated_device_t **ppdevice_array);
@@ -1053,12 +1020,8 @@ INT moca_GetAssociatedDevices(ULONG ifIndex, moca_associated_device_t **ppdevice
 *
 * @return Frequency Value for the given Mask if successful. The range of values is 0 to (2^32)-1 (inclusive). Returns STATUS_FAILURE if any error is detected
 *
-* @remark The size of the mask array must be compatible with the implementation of this function.
-*
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.Â
 *
 */
 //INT moca_FreqMaskToValue(UINT mask);
@@ -1076,8 +1039,6 @@ INT moca_FreqMaskToValue(UCHAR *mask);
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 BOOL moca_HardwareEquipped(void);
@@ -1096,14 +1057,9 @@ BOOL moca_HardwareEquipped(void);
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for providing a valid memory location for the pDeviceArray parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
-*         \n The caller is responsible for allocating memory for the 'pulCount' variable.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 #ifndef MOCA_VAR
@@ -1123,14 +1079,9 @@ INT moca_GetFullMeshRates(ULONG ifIndex, moca_mesh_table_t *pDeviceArray, ULONG 
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for providing a valid memory location for the pDeviceArray parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
-*         \n The caller is responsible for allocating memory for the 'pulCount' variable.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking systemÂ calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 INT moca_GetFlowStatistics(ULONG ifIndex, moca_flow_table_t *pDeviceArray, ULONG *pulCount);
@@ -1150,8 +1101,6 @@ INT moca_GetFlowStatistics(ULONG ifIndex, moca_flow_table_t *pDeviceArray, ULONG
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking system calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 
@@ -1170,13 +1119,9 @@ INT moca_GetResetCount(ULONG *resetcnt);
 * @retval STATUS_FAILURE if any error is detected for unknown reason.
 * @retval STATUS_INPROGRESS if already the ACA process running.
 *
-* @remark The caller is responsible for providing a valid memory location for the acaCfg parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking system calls.
-*       \n It should probably just send a message to a driver event handler task.
 *       \n ACAStart bit is set then ACA Process should get start.
 *       \n If user request ACA Start while ACA Process in progress, then HAL should send error saying ACA Is in progress.
 *       \n It should not start new one.
@@ -1195,13 +1140,9 @@ int moca_setIfAcaConfig(int interfaceIndex, moca_aca_cfg_t acaCfg);
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected
 *
-* @remark The caller is responsible for providing a valid memory location for the acaCfg parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking system calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 int moca_getIfAcaConfig(int interfaceIndex, moca_aca_cfg_t *acaCfg);
@@ -1220,8 +1161,6 @@ int moca_getIfAcaConfig(int interfaceIndex, moca_aca_cfg_t *acaCfg);
 *
 * @execution ASynchronous.
 *
-* @note This function must not suspend and must not invoke any blocking system calls.
-*       \n It should probably just send a message to a driver event handler task.
 */
 int moca_cancelIfAca(int interfaceIndex);
 
@@ -1239,13 +1178,9 @@ int moca_cancelIfAca(int interfaceIndex);
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for providing a valid memory location for the pacaStat parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking system calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 int moca_getIfAcaStatus(int interfaceIndex,moca_aca_stat_t *pacaStat);
@@ -1265,14 +1200,10 @@ int moca_getIfAcaStatus(int interfaceIndex,moca_aca_stat_t *pacaStat);
 * @retval STATUS_SUCCESS if successful.
 * @retval STATUS_FAILURE if any error is detected.
 *
-* @remark The caller is responsible for providing a valid memory location for the ppscmodStat parameter.
-*         \n The function will populate this structure with the retrieved MoCA interface information.
 *
 *
 * @execution Synchronous.
 *
-* @note This function must not suspend and must not invoke any blocking system calls.
-*       \n It should probably just send a message to a driver event handler task.
 *
 */
 
