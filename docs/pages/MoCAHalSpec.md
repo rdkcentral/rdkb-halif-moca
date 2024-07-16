@@ -10,18 +10,21 @@
 ## Description
 
 The diagram below describes a high-level software architecture of the MoCA HAL module stack.
+``` mermaid
+flowchart TD;
+    RDK-BSTACK[RDK-B Stack] <-->
+    CcspMoCA[CcspMoCA] <-->
+    MoCAHAL["MoCA HAL(libhal_moca)"] <-->
+    VendorSoftware[Vendor Software]
+```
 
-![MoCA HAL Architecture Diag](images/MoCA_HAL_Architecture.png)
-
-MoCA HAL is an abstraction layer, implemented to interacting with MoCA driver on CPE to get/set the specific details such as MoCA configurations, Interface informations such as static and dynamic, Associated Device informations, Get list of all the Nodes Connected on MoCA Network, etc. This HAL layer will be used by the CcspMoCA component currently.
+The MoCA (Multimedia over Coax Alliance) HAL (Hardware Abstraction Layer) is a component within the RDK-B (Reference Design Kit Broadband) framework designed to facilitate interaction with MoCA network adapters. Its primary purpose is to provide a standardized interface that allows higher-level software components to access and control MoCA functionalities, regardless of the specific underlying hardware or vendor implementation.
 
 ## Component Runtime Execution Requirements
 
 ### Initialization and Startup
 
-RDK-B MoCA HAL is to initialize the MoCA interface on the device. This involves opening the MoCA interface and configuring its settings, such as the frequency band, channel selection, and encryption settings. The HAL provides a set of APIs that allow the developer to interact with the MoCA hardware and configure the interface.
-
-The below HAL API's are not called on bootup but the below API's are used at runtime whenever need it. Only few API's are listed here, Please refer the doxygen of MoCA HAL pages for detailed API's.
+RDK-B's MoCA Hardware Abstraction Layer (HAL) is responsible for setting up the MoCA interface on a device. This involves starting up the interface and adjusting its parameters, including frequency band, channel, and encryption settings. The HAL provides a collection of APIs that allow developers to interact with the MoCA hardware and manage the interface configuration.
 
 - `moca_GetIfConfig()`
 - `moca_SetIfConfig()`
@@ -35,50 +38,58 @@ Third party vendors will implement appropriately to meet operational requirement
 
 ## Theory of operation
 
-Broadband MoCA HAL is to provide a standardized interface that allows developers to easily interact with MoCA hardware on their device. By abstracting the low-level details of the MoCA hardware, the HAL simplifies the development process and allows developers to focus on the application logic rather than the details of the hardware. Additionally, the HAL provides tools for monitoring and debugging the MoCA interface, which helps ensure that the MoCA network is operating correctly.
+Broadband MoCA HAL serves as a standardized interface that simplifies developer interaction with MoCA hardware. By abstracting the underlying complexities of the MoCA hardware, the HAL streamlines development and enables developers to concentrate on application logic. Furthermore, the HAL offers tools for monitoring and troubleshooting the MoCA interface, ensuring optimal performance of the MoCA network.
 
 ## Threading Model
 
-MoCA HAL is not thread safe.
+Vendors may implement internal threading and event mechanisms to meet their operational requirements. These mechanisms must be designed to ensure thread safety when interacting with HAL interface. Proper cleanup of allocated resources (e.g., memory, file handles, threads) is mandatory when the vendor software terminates or closes its connection to the HAL.
 
-Any module which is invoking the MoCA HAL api should ensure calls are made in a thread safe manner.
-
-Vendors can create internal threads/events to meet their operation requirements. These should be responsible to synchronize between the calls, events and cleaned up on closure.
+This interface is not inherently required to be thread-safe. It is the responsibility of the calling module or component to ensure that all interactions with the APIs are properly synchronized.
 
 ## Process Model
 
-All API's are expected to be called from multiple process.
+All APIs are expected to be called from multiple processes. Due to this concurrent access, vendors must implement protection mechanisms within their API implementations to handle multiple processes calling the same API simultaneously. This is crucial to ensure data integrity, prevent race conditions, and maintain the overall stability and reliability of the system.
 
 ## Memory Model
 
-MoCA HAL client module is responsible to allocate and deallocate memory for necessary API's to store information as specified in API Documentation.
+**Caller Responsibilities:**
 
-Different 3rd party vendors allowed to allocate memory for internal operational requirements. In this case 3rd party implementations should be responsible to deallocate internally.
+- Manage memory passed to specific functions as outlined in the API documentation. This includes allocation and deallocation to prevent leaks.
+
+**Module Responsibilities:**
+
+- Modules must allocate and de-allocate memory for their internal operations, ensuring efficient resource management.
+- Modules are required to release all internally allocated memory upon closure to prevent resource leaks.
+- All module implementations and caller code must strictly adhere to these memory management requirements for optimal performance and system stability. Unless otherwise stated specifically in the API documentation.
+- All strings used in this module must be zero-terminated. This ensures that string functions can accurately determine the length of the string and prevents buffer overflows when manipulating strings.
 
 TODO:
 State a footprint requirement. Example: This should not exceed XXXX KB.
 
 ## Power Management Requirements
 
-The MoCA HAL is not involved in any of the power management operation. Any power management state transitions MUST not affect the operation of the MoCA HAL.
+The MoCA HAL is not involved in any of the power management operation. It does not participate in or require involvement in any power-related functions.
 
 ## Asynchronous Notification Model
 
-There are no asynchronous notifications.
+This API is called from a single thread context, therefore is must not suspend.
 
 ## Blocking calls
 
-MoCA HAL API's are expected to work synchronously and should complete within a time period commensurate with the complexity of the operation and in accordance with any relevant specification.
+**Synchronous and Responsive:** All APIs within this module should operate synchronously and complete within a reasonable timeframe based on the complexity of the operation. Specific timeout values or guidelines may be documented for individual API calls.
 
-Any calls that can fail due to the lack of a response should have a timeout period in accordance with any relevant documentation.
-The upper layers will call this API from a single thread context, this API should not suspend.
+**Timeout Handling:** To ensure resilience in cases of unresponsiveness, implement appropriate timeouts for API calls where failure due to lack of response is a possibility. Refer to the API documentation for recommended timeout values per function.
+
+**Non-Blocking Requirement:** Given the single-threaded environment in which these APIs will be called, it is imperative that they do not block or suspend execution of the main thread. Implementations must avoid long-running operations or utilize asynchronous mechanisms where necessary to maintain responsiveness.
 
 TODO:
-As we state that they should complete within a time period, we need to state what that time target is, and pull it from the spec if required. Define the timeout requirement.
+We are actively working on defining a specific timeout requirement for the completion of [task/process]. This target will align with any relevant specifications and be clearly documented in a future update.
 
 ## Internal Error Handling
 
-All the MoCA HAL API's should return error synchronously as a return argument. HAL is responsible to handle system errors(e.g. out of memory) internally.
+**Synchronous Error Handling:** All APIs must return errors synchronously as a return value. This ensures immediate notification of errors to the caller.
+**Internal Error Reporting:** The HAL is responsible for reporting any internal system errors (e.g., out-of-memory conditions) through the return value.
+**Focus on Logging for Errors:** For system errors, the HAL should prioritize logging the error details for further investigation and resolution.
 
 ## Persistence Model
 
@@ -90,21 +101,33 @@ Following non functional requirement should be supported by the MoCA HAL compone
 
 ## Logging and debugging requirements
 
-MoCA HAL component should log all the error and critical informative messages, preferably using syslog, printf which helps to debug/triage the issues and understand the functional flow of the system.
+The component is required to record all errors and critical informative messages to aid in identifying, debugging, and understanding the functional flow of the system. Logging should be implemented using the syslog method, as it provides robust logging capabilities suited for system-level software. The use of `printf` is discouraged unless `syslog` is not available.
 
-The logging should be consistent across all HAL components.
+All HAL components must adhere to a consistent logging process. When logging is necessary, it should be performed into the `moca_vendor_hal.log` file, which is located in either the `/var/tmp/` or `/rdklogs/logs/` directories.
 
-If the vendor is going to log then it has to be logged in `xxx_vendor_hal.log` file name which can be placed in `/rdklogs/logs/` or `/var/tmp/` directory.
+Logs must be categorized according to the following log levels, as defined by the Linux standard logging system, listed here in descending order of severity:
 
-Logging should be defined with log levels as per Linux standard logging.
+- **FATAL:** Critical conditions, typically indicating system crashes or severe failures that require immediate attention.
+- **ERROR:** Non-fatal error conditions that nonetheless significantly impede normal operation.
+- **WARNING:** Potentially harmful situations that do not yet represent errors.
+- **NOTICE:** Important but not error-level events.
+- **INFO:** General informational messages that highlight system operations.
+- **DEBUG:** Detailed information typically useful only when diagnosing problems.
+- **TRACE:** Very fine-grained logging to trace the internal flow of the system.
+
+Each log entry should include a timestamp, the log level, and a message describing the event or condition. This standard format will facilitate easier parsing and analysis of log files across different vendors and components.
 
 ## Memory and performance requirements
 
-Make sure MoCA HAL is not contributing more to memory and CPU utilization while performing normal operations and Commensurate with the operation required.
+**Client Module Responsibility:** The client module using the HAL is responsible for allocating and deallocating memory for any data structures required by the HAL's APIs. This includes structures passed as parameters to HAL functions and any buffers used to receive data from the HAL.
+
+**Vendor Implementation Responsibility:** Third-party vendors, when implementing the HAL, may allocate memory internally for their specific operational needs. It is the vendor's sole responsibility to manage and deallocate this internally allocated memory.
 
 ## Quality Control
 
-MoCA HAL implementation should pass checks using any third party tools like `Coverity`, `Black duck`, `Valgrind` etc. without any issue to ensure quality. There should not be any memory leaks/corruption introduced by HAL and underneath 3rd party software implementation.
+To ensure the highest quality and reliability, it is strongly recommended that third-party quality assurance tools like `Coverity`, `Black Duck`, and `Valgrind` be employed to thoroughly analyze the implementation. The goal is to detect and resolve potential issues such as memory leaks, memory corruption, or other defects before deployment.
+
+Furthermore, both the HAL wrapper and any third-party software interacting with it must prioritize robust memory management practices. This includes meticulous allocation, deallocation, and error handling to guarantee a stable and leak-free operation.
 
 ## Licensing
 
@@ -112,11 +135,11 @@ MoCA HAL implementation is expected to released under the Apache License 2.0
 
 ## Build Requirements
 
-MoCA HAL source code should be able to be built under Linux Yocto environment and should be delivered as a static library `libhal_moca`.
+The source code should be capable of, but not be limited to, building under the Yocto distribution environment. The recipe should deliver a shared library named as `libhal_moca.so`.
 
 ## Variability Management
 
-Changes to the interface will be controlled by versioning, vendors will be expected to implement to a fixed version of the interface, and based on SLA agreements move to later versions as demand requires.
+The role of adjusting the interface, guided by versioning, rests solely within architecture requirements. Thereafter, vendors are obliged to align their implementation with a designated version of the interface. As per Service Level Agreement (SLA) terms, they may transition to newer versions based on demand needs.
 
 Each API interface will be versioned using [Semantic Versioning 2.0.0](https://semver.org/), the vendor code will comply with a specific version of the interface.
 
@@ -130,14 +153,41 @@ MOCA_VAR  #Disable the MoCA Variables
 
 ## Interface API Documentation
 
-All HAL function prototypes and datatype definitions are available in `moca_hal.h` file.
+The `moca_hal.h` header file provides a complete reference for all HAL function prototypes and data type definitions.
 
-1.  Components/Process must include `moca_hal.h` to make use of moca hal capabilities.
-2.  Components/Process should add linker dependency for `libhal_moca`.
+To utilize the MoCA HAL functionalities within your component or process:
+
+1. **Inclusion:** Ensure to include the `moca_hal.h` header file in your source code.
+2. **Linking:** Establish a linker dependency on the `libhal_moca` library.
+
 
 ## Theory of operation and key concepts
 
-Covered as per "Description" sections in the API documentation.
+### Object Lifecycles
+
+- **Creation:** The MoCA HAL itself does not explicitly create objects in the traditional sense. Instead, it provides an interface for interacting with the underlying MoCA hardware. Client modules are responsible for allocating memory for data structures like `moca_cfg_t` and `moca_stats_t` to receive information from the HAL.
+
+- **Usage:** These structures are populated by the HAL's API functions (`moca_GetIfConfig`, `moca_IfGetDynamicInfo`, etc.). Client modules then use the information within these structures to configure the MoCA interface, monitor its status, and gather statistics.
+
+- **Destruction:** Client modules are responsible for deallocating the memory they allocated for the data structures after they are no longer needed. The HAL itself does not manage the lifecycle of these objects.
+
+- **Unique Identifiers:** The `ifIndex` parameter (an unsigned long) is used to identify specific MoCA interfaces. If a device has multiple MoCA interfaces, each would have a unique `ifIndex`. There are no other explicit unique identifiers for objects within the HAL.
+
+### Method Sequencing
+
+- **Initialization:** The MoCA interface must be initialized before any configuration or information retrieval functions can be called. This initialization involves opening the interface and applying default configurations.
+
+- **Configuration:** Configuration functions like `moca_SetIfConfig` should generally be called before attempting to retrieve information or perform other operations.
+
+- **Other Methods:** Most other functions (`moca_GetIfConfig`, `moca_IfGetDynamicInfo`, etc.) can be called in any order after initialization and configuration, as long as they are called from a single-threaded context due to the lack of thread safety.
+
+### State-Dependent Behaviour
+
+- **Interface Status:** Functions like `moca_GetIfDynamicInfo` and `moca_IfGetStats` will return different information depending on the current state of the MoCA interface (Up, Down, Dormant, etc.).
+
+- **ACA Process:** Functions like `moca_setIfAcaConfig`, `moca_getIfAcaConfig`, and `moca_cancelIfAca` are specifically related to the Automatic Channel Assessment (ACA) process. They can only be used meaningfully when the ACA process is running or is being configured to start.
+
+- **State Model:** While not explicitly documented, there is an implicit state model governing the MoCA interface (e.g., Up, Down, etc.) and the ACA process (e.g., Running, Not Running). The behaviour of certain functions will depend on these states.
 
 ## Sequence Diagram
 
