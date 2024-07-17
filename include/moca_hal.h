@@ -56,6 +56,15 @@
         below this HAL supports MoCA.
         Changes may be needed to support other MoCA enviornments.
 
+         @file moca_hal.h
+         @brief RDK-Broadband MoCA Hardware Abstraction Layer
+         This header file defines function prototypes, structures, and constants used
+         for interfacing with the MoCA hardware through a standardized API.
+         @details The current implementation is tailored for a specific MoCA environment
+         (MoCA specification version?). Adaptations may be needed for other MoCA environments or
+         different versions of the MoCA specification.
+         @component MoCA_Provisioning_and_management
+
     ---------------------------------------------------------------
 
     author:
@@ -117,52 +126,88 @@
 #endif
 
 /**
-* @defgroup MOCA_HAL MoCA HAL
-*
-* MoCA HAL is an abstraction layer, mainly for interacting with MoCA driver.
-*
-* @defgroup MOCA_HAL_TYPES  MOCA HAL Data Types
-* @ingroup  MOCA_HAL
-*
-* @defgroup MOCA_HAL_APIS   MOCA HAL  APIs
-* @ingroup  MOCA_HAL
-*
-**/
+ * @defgroup MOCA_HAL MoCA Hardware Abstraction Layer (HAL)
+ *
+ * This group encompasses functions, data types, and constants that provide an abstraction layer for interacting with
+ * MoCA hardware devices. The MoCA HAL facilitates communication between higher-level software components and the
+ * underlying MoCA driver, enabling operations like configuration, status retrieval, and statistics collection.
+ *
+ * @ingroup Network_Interfaces
+ * @{
+ */
+
+/**
+ * @defgroup MOCA_HAL_TYPES MoCA HAL Data Types
+ *
+ * This subgroup defines the data structures used within the MoCA HAL to represent MoCA configurations, statistics,
+ * and other relevant information.
+ *
+ * @ingroup MOCA_HAL
+ * @{
+ */
+
+/**
+ * @defgroup MOCA_HAL_APIS MoCA HAL APIs
+ *
+ * This subgroup contains the function prototypes for the MoCA HAL API, which allows applications to control and
+ * monitor MoCA devices through a standardized interface.
+ *
+ * @ingroup MOCA_HAL
+ * @{
+ */
 
 /**
  * @addtogroup MOCA_HAL_TYPES
  * @{
  */
 
-#define kMoca_MaxCpeList        256
-#define kMoca_MaxMocaNodes      16
-#define MAC_PADDING                12 /**< RDKB expects 6 byte MAC, padding required for platforms handling as 18 bytes MAC */
+/**
+ * @brief Maximum number of CPE (Customer Premises Equipment) devices in a MoCA network.
+ */
+#define kMoca_MaxCpeList 256
 
-#define STATUS_INPROGRESS       -1 /**< If ACA process already running */
-#define STATUS_NO_NODE          -2 /**< If specified NODE not exist */
-#define STATUS_INVALID_PROBE    -3 /**< If HAL API called with invalid probe TYPE */
-#define STATUS_INVALID_CHAN     -4 /**< If HAL API called with invalid channel */
+/**
+ * @brief Maximum number of MoCA nodes allowed in a network.
+ */
+#define kMoca_MaxMocaNodes 16
+
+/**
+ * @brief Number of padding bytes added to a 6-byte MAC address to make it 18 bytes long. 
+ *        This is required on platforms that handle MAC addresses as 18 bytes, while RDKB uses 6-byte MACs.
+ */
+#define MAC_PADDING 12
+
+#define STATUS_INPROGRESS -1             /**< Status code: ACA process is in progress */
+#define STATUS_NO_NODE -2                /**< Status code: Specified MoCA node does not exist */
+#define STATUS_INVALID_PROBE -3          /**< Status code: HAL API called with invalid probe type */
+#define STATUS_INVALID_CHAN -4           /**< Status code: HAL API called with invalid channel */
+// TODO: Replace these status codes with strongly typed enums for better type safety and readability.
 
 /**********************************************************************
                 ENUMERATION DEFINITIONS
 **********************************************************************/
 #ifndef MOCA_VAR
+
+/**
+ * @brief Possible states of a MoCA interface.
+ */
 typedef enum
 {
-    IF_STATUS_Up               = 1, /**< Local interface is Up. */
-    IF_STATUS_Down             = 2, /**< Local interface is Down. */
-    IF_STATUS_Unknown          = 3, /**< Local interface is Unknown. */
-    IF_STATUS_Dormant          = 4, /**< Local interface is Dormant. */
-    IF_STATUS_NotPresent       = 5, /**< Local interface is Not present. */
-    IF_STATUS_LowerLayerDown   = 6, /**< Local interface is Lower layer down. */
-    IF_STATUS_Error            = 7  /**< Local interface is Error. */
+    IF_STATUS_Up = 1,                /**< Interface is up and operational */
+    IF_STATUS_Down = 2,              /**< Interface is down (not operational) */
+    IF_STATUS_Unknown = 3,           /**< Interface status is unknown */
+    IF_STATUS_Dormant = 4,           /**< Interface is dormant (temporarily inactive) */
+    IF_STATUS_NotPresent = 5,        /**< Interface is not physically present */
+    IF_STATUS_LowerLayerDown = 6,    /**< Lower layer of the interface is down */
+    IF_STATUS_Error = 7             /**< Interface is in an error state */
 } moca_if_status_t;
+
 #endif
 
 typedef enum
 {
-    PROBE_QUITE = 0, /**< Probe Type is Quite. */
-    PROBE_EVM   = 1  /**< Probe Type is EVM. */
+    PROBE_QUITE = 0, /**< Quiet probe (no signal transmission) */
+    PROBE_EVM   = 1   /**< EVM (Error Vector Magnitude) probe (transmits signal to measure signal quality) */
 }PROBE_TYPE;
 
 #if 0
@@ -178,636 +223,273 @@ typedef enum
 /**********************************************************************
                 STRUCTURE DEFINITIONS
 **********************************************************************/
+/**
+ * @brief Configuration parameters for a MoCA interface.
+ */
 typedef struct
 {
-    ULONG InstanceNumber;               /**< Instance Number when Multiple MoCA interfaces
-                                             exist. 0 - In the case of only one interface. The
-                                             range of acceptable values is 0 to 256, where
-                                             InstanceNumber starts at 1 and just one interface is
-                                             present if value is 0. */
+    ULONG InstanceNumber;      /**< Instance number (0 for single interface, 1-256 for multiple) */
 
-    CHAR Alias[64];                     /**< Set the Alias Name for the interface. Alias is a 64
-                                             bytes character array. It is a vendor specific value. */
+    CHAR Alias[64];            /**< Vendor-specific alias name for the interface (max 64 characters) */
+    BOOL bEnabled;             /**< Flag: TRUE if the interface is enabled, FALSE otherwise */
+    BOOL bPreferredNC;         /**< Flag: TRUE if the node prefers to be Network Coordinator, FALSE otherwise */
+    BOOL PrivacyEnabledSetting;/**< Flag: TRUE if link privacy is enabled, FALSE otherwise */
 
-    BOOL bEnabled;                      /**< Enable/Disable the interface. If the Interface is enabled,
-                                             the bEnabled Flag is TRUE; otherwise, it is FALSE. */
+    UCHAR FreqCurrentMaskSetting[128];    /**< Bitmask indicating the set of frequencies to use for network formation (vendor-specific) */
+    CHAR KeyPassphrase[18];    /**< Privacy password (valid only if privacy is enabled) (max 18 characters) */
 
-    BOOL bPreferredNC;                  /**< Enable/Disable the Node's preference to be
-                                             Network Coordinator using bPreferredNC. If the Local Node's
-                                             preference to be Network Coordinator is enabled, the bPreferredNC
-                                             Flag is TRUE; otherwise, it is FALSE. */
+    INT TxPowerLimit;          /**< Maximum allowed transmission power (signed integer, range: -(2^31) to (2^31)-1) */
+    ULONG AutoPowerControlPhyRate;   /**< Target PHY rate for automatic power control (unsigned long, range: 0 to (2^32)-1) */
+    ULONG BeaconPowerLimit;    /**< Maximum allowed transmission power for beacons (unsigned long, range: 0 to (2^32)-1) */
 
-    BOOL PrivacyEnabledSetting;         /**< Enable/Disable Link Privacy. A Password
-                                             is required when Privacy is enabled, the PrivacyEnabledSetting flag
-                                             is TRUE; otherwise, it is FALSE. */
+    ULONG MaxIngressBWThreshold; /**< Maximum ingress bandwidth threshold (unsigned long, range: 0 to (2^32)-1) */
+    ULONG MaxEgressBWThreshold;  /**< Maximum egress bandwidth threshold (unsigned long, range: 0 to (2^32)-1) */
 
-    UCHAR FreqCurrentMaskSetting[128];  /**< Set of Frequencies that should be used
-                                             for forming network (bitmask). FreqCurrentMaskSetting is a 128 bytes
-                                             character array. It is a vendor specific value. */
+    BOOL Reset;                /**< Flag: TRUE to reset MoCA configuration parameters to defaults, FALSE otherwise */
+    BOOL MixedMode;            /**< Flag: TRUE to enable mixed mode (1.0/1.1/2.0) operation, FALSE otherwise */
+    BOOL ChannelScanning;      /**< Flag: TRUE to enable channel scanning mode, FALSE for single frequency mode */
+    BOOL AutoPowerControlEnable;   /**< Flag: TRUE to enable automatic power control, FALSE otherwise */
 
-    CHAR KeyPassphrase[18];             /**< Privacy Password. This field is valid
-                                             only if the Link Privacy is enabled. KeyPassphrase is a 18 bytes
-                                             character array. It is a vendor specific value. */
-    
-    INT TxPowerLimit;                   /**< Maximum Transmission Power allowed.  It is a signed integer value and
-                                             the range of acceptable values is -(2^31) to (2^31)-1 (inclusive). */
-    
-    ULONG AutoPowerControlPhyRate;      /**< AutoPowerControlPhyRate: PowerCtrlPhyTarget
-                                             Used as a reference to achieve the PHY rate by
-                                             adjusting  power. It is an unsigned long value and the range of acceptable
-                                             values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG BeaconPowerLimit;             /**< Maximum Transmission Power Allowed when
-                                             transmitting Beacons. It is an unsigned long value and the range of acceptable
-                                             values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG MaxIngressBWThreshold;        /**< Maximum Ingress Bandwidth Thresholds. It is an unsigned long value and the
-                                             range of acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG MaxEgressBWThreshold;         /**< Maximum Egress Bandwidth Thresholds. It is an unsigned long value and the
-                                             range of acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    BOOL Reset;                         /**< Reset MoCA Configuration Parameters to Defaults. If the Reset MoCA Configuration
-                                             to defaults is enabled, the Reset Flag is TRUE; otherwise, it is FALSE. */
-    
-    BOOL MixedMode;                     /**< Enable/Disable the Node to operate in mixed mode
-                                             (1.0/1.1/2.0 versions). i.e Enable backward compatibility
-                                             on the MoCA Protocol Versions. If the Node is configured to operate in mixed mode
-                                             is enabled, the MixedMode Flag is TRUE; otherwise, it is FALSE. */
-                
-    BOOL ChannelScanning;               /**< Enable/Disable the Node to operate in single frequency
-                                              mode or scanning mode.  If the Node is Scanning is enabled, the ChannelScanning
-                                             Flag is TRUE; otherwise, it is FALSE. */
-    
-    BOOL AutoPowerControlEnable;        /**< Enable/Disable adjusting Power to achieve the Target PHY rate. If the Auto Power
-                                             Control is enabled, the AutoPowerControlEnable Flag is TRUE; otherwise, it is FALSE. */
-    
-    BOOL EnableTabooBit;                /**< Enable/Disable the Node to support Taboo Mask. If the Node to support Taboo Mask is
-                                             enabled, the EnableTabooBit Flag is TRUE; otherwise, it is FALSE. */
-    
-    UCHAR NodeTabooMask[128];           /**< Indicates the Set of Frequencis to Avoid (bitmask). NodeTabooMask is a 128 bytes
-                                             character array. It is a vendor specific value. */
-    
-    UCHAR ChannelScanMask[128];         /**< Indicates the Set of Frequencies to Scan for Beacons to form network (bitmask).
-                                             Very often, this is same as FreqCurrentMaskSetting. ChannelScanMask is a 128 bytes
-                                             character array. It is a vendor specific value. */
-}
-moca_cfg_t;
+    BOOL EnableTabooBit;       /**< Flag: TRUE to enable support for taboo mask, FALSE otherwise */
+    UCHAR NodeTabooMask[128];   /**< Bitmask indicating frequencies to avoid (taboo mask) (vendor-specific) */
+    UCHAR ChannelScanMask[128]; /**< Bitmask indicating frequencies to scan for beacons (vendor-specific) */
+} moca_cfg_t;
 
+/**
+ * @brief Static information about a MoCA interface.
+ */
 typedef struct
 {
-    CHAR   Name[64];                          /**< Interface Name (for example: moca0) - Uniquely
-                                                   identifying the entry. Name is a 64 bytes character
-                                                   array. Possible Name Values are moca0 and nmoca0. */
-    
-    UCHAR  MacAddress[6 + MAC_PADDING];       /**< MAC Address of the Local Node. MacAddress is a [6 + MAC_PADDING]
-                                                   bytes character array. MAC_PADDING is a 12 bytes. RDKB expects 6
-                                                   byte MAC, padding required for platforms handling as 18 bytes MAC.
-                                                   The MAC Address should be in the format AA:BB:CC:DD:EE:FF
-                                                   (colon-separated hexadecimal digits). Range of acceptable value
-                                                   for each hexadecimal byte is from 0 to 0xFF. */
-    
-    CHAR   FirmwareVersion[64];               /**< Firmware Version of the MoCA Firmware. FirmwareVersion is a 64
-                                                   bytes character array. For example firmware version: 2.12.5p40.
-                                                   It is a vendor specific value. */
-    
-    ULONG  MaxBitRate;                        /**< Maximum PHY Rate that the Node can support. It is an unsigned
-                                                   long value and the range of acceptable values is 0 to (2^32)-1
-                                                   (inclusive). */
-    
-    CHAR   HighestVersion[64];                /**< Highest Version of the MoCA Protocol that the Local
-                                                   Node Supports. HighestVersion is a 64 bytes character array.
-                                                   Possible Valid values are 1.0, 1.1 and 2.0. It is a vendor
-                                                   specific value. */
-    
-    UCHAR  FreqCapabilityMask[8];             /**< Frequencies that the Local Node supports (bitmask). FreqCapabilityMask
-                                                   is a 8 bytes character array. It is a vendor specific value. */
-    
-    UCHAR  NetworkTabooMask[128];             /**< Frequencies that the Local Node does not support
-                                                   (bitmask). NodeTabooMask is a 128 bytes character array. It
-                                                   is a vendor specific value. */
-    
-    ULONG  TxBcastPowerReduction;             /**< Beacon Backoff in dB. It is an unsigned long value and the range
-                                                   of acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    BOOL   QAM256Capable;                     /**< Enable/Disable the Local Node is QAM-256 Capable or Not. If the
-                                                   Local Node with QAM-256 Capable is enabled, the QAM256Capable Flag
-                                                   is TRUE; otherwise, it is FALSE. */
-    
-    BOOL   PacketAggregationCapability;       /**< Enable/Disable the Local Node can aggregate Ethernet Packets for MoCA
-                                                   PDU transfers. If the Local Node can aggregate Ethernet Packets for
-                                                   MoCA PDU transfersis Scanning is enabled, the PacketAggregationCapability
-                                                   Flag is TRUE; otherwise, it is FALSE. */
-}
-moca_static_info_t;
+    CHAR Name[64];                      /**< Unique interface name (e.g., "moca0", "nmoca0") (max 64 characters) */
+    UCHAR MacAddress[6 + MAC_PADDING];   /**< MAC address of the local node (format: AA:BB:CC:DD:EE:FF) */
+    CHAR FirmwareVersion[64];            /**< MoCA firmware version (vendor-specific) (max 64 characters) */
+    ULONG MaxBitRate;                   /**< Maximum PHY rate supported by the node (unsigned long, range: 0 to (2^32)-1) */
+    CHAR HighestVersion[64];            /**< Highest MoCA protocol version supported by the node (e.g., "1.0", "1.1", "2.0") (vendor-specific) (max 64 characters) */
 
+    UCHAR FreqCapabilityMask[8];       /**< Bitmask indicating frequencies supported by the local node (vendor-specific) */
+    UCHAR NetworkTabooMask[128];       /**< Bitmask indicating frequencies not supported by the local node (vendor-specific) */
+
+    ULONG TxBcastPowerReduction;       /**< Beacon backoff in dB (unsigned long, range: 0 to (2^32)-1) */
+    BOOL QAM256Capable;                /**< Flag: TRUE if the node is QAM-256 capable, FALSE otherwise */
+    BOOL PacketAggregationCapability;  /**< Flag: TRUE if the node can aggregate Ethernet packets, FALSE otherwise */
+} moca_static_info_t;
 
 #ifndef MOCA_VAR
+/**
+ * @brief Dynamic information about a MoCA interface.
+ */
 typedef struct
 {
-    moca_if_status_t  Status;                            /**< Current Status of the Local Interface.(Up/Down, etc.). Local Interface's current
-                                                              status (Up, Down, Dormant, Not Present, Lowerlayer Down, etc.). The range of acceptable
-                                                              values is 1 to 7 based on moca_if_status_t enum type value. The moca_if_status_t is an
-                                                              enum type are defined below.
-                                                              IF_STATUS_Up = 1
-                                                              IF_STATUS_Down = 2
-                                                              IF_STATUS_Unknown = 3
-                                                              IF_STATUS_Dormant = 4
-                                                              IF_STATUS_NotPresent = 5
-                                                              IF_STATUS_LowerLayerDown = 6
-                                                              IF_STATUS_Error = 7 */
-    
-    ULONG             LastChange;                        /**< Last Link Status Change (Up/Down, etc.). The range of acceptable values is 1 to 7, where
-                                                              LastChange value based on moca_if_status_t enum type. */
-    
-    ULONG             MaxIngressBW;                      /**< Maximum Ingress Bandwidth reached. It is an unsigned long value and the range of
-                                                              acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG             MaxEgressBW;                       /**< Maximum Egress Bandwidth reached. It is an unsigned long value and the range of
-                                                              acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    CHAR              CurrentVersion[64];                /**< Current Operating MoCA Protocol Version.
-                                                              Valid Values: 1.0, 1.1, 2.0. CurrentVersion is a
-                                                              64 bytes character array. It is a vendor specific value. */
-    
-    ULONG             NetworkCoordinator;                /**< Node ID of the Network Coordinator.
-                                                              Valid Values: 0-7 (Protocol: 1.0)
-                                                              Valid Values: 0-15 (Protocol: 1.1, 2.0). */
-                                                        
-    ULONG             NodeID;                            /**< Node ID of the Local Node.
-                                                              Valid Values: 0-7 (Protocol: 1.0)
-                                                              Valid Values: 0-15 (Protocol: 1.1, 2.0) */
-                                                        
-    ULONG             BackupNC;                          /**< Node ID of the Backup Network Coordinator.
-                                                              Valid Values: 0-7 (Protocol: 1.0)
-                                                              Valid Values: 0-15 (Protocol: 1.1, 2.0) */
-                                                        
-    BOOL              PrivacyEnabled;                    /**< Enable/Disable the Privacy on the network using PrivacyEnabled.
-                                                              If the Privacy is enabled on the network, the PrivacyEnabled Flag
-                                                              is TRUE; otherwise, it is FALSE. */
-    
-    UCHAR             FreqCurrentMask[8];                /**< This should be same as the Configured
-                                                              Frequencies that the Node can operate. FreqCurrentMask is a 8 bytes
-                                                              character array. It is a vendor specific value. */
-    
-    ULONG             CurrentOperFreq;                   /**< The Current Frequency on which the Node
-                                                              formed the Network. It is an unsigned long value and the range of
-                                                              acceptable values is 0 to (2^32)-1 (inclusive). It is a vendor
-                                                              specific value. */
-    
-    ULONG             LastOperFreq;                      /**< The Last Operating Frequency on which the
-                                                              Node formed the Network earlier. It is an unsigned long value
-                                                              and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-                                                              It is a vendor specific value. */
-    
-    ULONG             TxBcastRate;                       /**< Transmission Broadcast Rate. It is an unsigned integer value and
-                                                              the range of acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    BOOL              MaxIngressBWThresholdReached;      /**< Flag Indicating that the Ingress Bandwidth
-                                                              reached the Maximum Threshold Set. If the Ingress Bandwidth reached
-                                                              the Maximum Threshold is enabled, the MaxIngressBWThresholdReached Flag
-                                                              is TRUE; otherwise, it is FALSE. */
-    
-    BOOL              MaxEgressBWThresholdReached;       /**< Flag Indicating that the Egress Bandwidth
-                                                              reached the Maximum Threshold Set. If the Bandwidth reached the Maximum
-                                                              Threshold is enabled, the MaxIngressBWThresholdReached Flag is TRUE;
-                                                              otherwise, it is FALSE. */
-    
-    ULONG             NumberOfConnectedClients;          /**< Number of Nodes on the MoCA Network -
-                                                              Cannot exceed the maximum supported by MoCA
-                                                              Protocol. It is an unsigned long value. The range of acceptable values
-                                                              is 0 to 256. */
-    
-    CHAR              NetworkCoordinatorMACAddress[18];  /**< Network Coordinator MAC Address. NetworkCoordinatorMACAddress is a 18 bytes
-                                                              character array. The MAC Address should be in the format AA:BB:CC:DD:EE:FF
-                                                              (colon-separated). Range of acceptable value for each hexadecimal byte is
-                                                              from 0 to 0xFF. */
-    
-    ULONG             LinkUpTime;                        /**< Indicate the length of time this node has
-                                                              been connected to the MoCA network with at least one other node. It is an
-                                                              unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive). */
-}
-moca_dynamic_info_t;
+    moca_if_status_t Status;             /**< Current status of the local interface (see moca_if_status_t enum) */
+    ULONG LastChange;                   /**< Timestamp of the last link status change (in seconds since epoch) */
+    ULONG MaxIngressBW;                 /**< Maximum ingress bandwidth reached (bits per second) */
+    ULONG MaxEgressBW;                  /**< Maximum egress bandwidth reached (bits per second) */
+    CHAR CurrentVersion[64];            /**< Current MoCA protocol version (e.g., "1.0", "1.1", "2.0") */
+    ULONG NetworkCoordinator;          /**< Node ID of the Network Coordinator (0-7 for MoCA 1.0, 0-15 for 1.1/2.0) */
+    ULONG NodeID;                      /**< Node ID of the local node (0-7 for MoCA 1.0, 0-15 for 1.1/2.0) */
+    ULONG BackupNC;                    /**< Node ID of the backup Network Coordinator (0-7 for MoCA 1.0, 0-15 for 1.1/2.0) */
+    BOOL PrivacyEnabled;               /**< Flag: TRUE if privacy is enabled on the network, FALSE otherwise */
+    UCHAR FreqCurrentMask[8];           /**< Bitmask indicating the currently used frequencies (vendor-specific) */
+    ULONG CurrentOperFreq;              /**< Current operating frequency of the node (vendor-specific) */
+    ULONG LastOperFreq;                 /**< Last operating frequency of the node before the current one (vendor-specific) */
+    ULONG TxBcastRate;                 /**< Transmission broadcast rate */
+    BOOL MaxIngressBWThresholdReached;  /**< Flag: TRUE if the maximum ingress bandwidth threshold has been reached, FALSE otherwise */
+    BOOL MaxEgressBWThresholdReached;   /**< Flag: TRUE if the maximum egress bandwidth threshold has been reached, FALSE otherwise */
+    ULONG NumberOfConnectedClients;     /**< Number of nodes connected to the MoCA network (0-256) */
+    CHAR NetworkCoordinatorMACAddress[18]; /**< MAC address of the Network Coordinator (format: AA:BB:CC:DD:EE:FF) */
+    ULONG LinkUpTime;                   /**< Duration (in seconds) the node has been connected to the MoCA network with at least one other node */
+} moca_dynamic_info_t;
 
 #endif
 
+/**
+ * @brief Statistics for a MoCA interface.
+ */
 typedef struct
 {
-    ULONG BytesSent;                    /**< Number of Bytes Sent & Received. It is
-                                             an unsigned long value and the range of
-                                             acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG BytesReceived;                /**< Number of Bytes Sent & Received. It is an unsigned
-                                             long value and the range of acceptable values is 0
-                                             to (2^32)-1 (inclusive). */
+    ULONG BytesSent;              /**< Total number of bytes sent */
+    ULONG BytesReceived;          /**< Total number of bytes received */
+    ULONG PacketsSent;            /**< Total number of packets sent */
+    ULONG PacketsReceived;        /**< Total number of packets received */
+    ULONG ErrorsSent;             /**< Number of errors in sent packets */
+    ULONG ErrorsReceived;         /**< Number of errors in received packets */
+    ULONG UnicastPacketsSent;     /**< Number of unicast packets sent */
+    ULONG UnicastPacketsReceived; /**< Number of unicast packets received */
+    ULONG DiscardPacketsSent;     /**< Number of packets discarded on the transmit (Tx) side */
+    ULONG DiscardPacketsReceived; /**< Number of packets discarded on the receive (Rx) side */
+    ULONG MulticastPacketsSent;   /**< Number of multicast packets sent */
+    ULONG MulticastPacketsReceived; /**< Number of multicast packets received */
+    ULONG BroadcastPacketsSent;   /**< Number of broadcast packets sent */
+    ULONG BroadcastPacketsReceived; /**< Number of broadcast packets received */
+    ULONG UnknownProtoPacketsReceived; /**< Number of packets received with unknown protocols */
+    ULONG ExtAggrAverageTx;       /**< Aggregate average of transmitted packet counts (vendor-specific) */
+    ULONG ExtAggrAverageRx;       /**< Aggregate average of received packet counts (vendor-specific) */
+} moca_stats_t;
 
-    ULONG PacketsSent;                  /**< Number of Packets Sent & Received. It is an unsigned
-                                             long value and the range of acceptable values is 0 to
-                                             (2^32)-1 (inclusive). */
-    
-    ULONG PacketsReceived;              /**< Number of Packets Sent & Received. It is an unsigned
-                                             long value and the range of acceptable values is 0 to
-                                             (2^32)-1 (inclusive). */
-
-    ULONG ErrorsSent;                   /**< Number of Errors in Sent & Received Packets. It is an
-                                             unsigned long value and the range of acceptable values
-                                             is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG ErrorsReceived;               /**< Number of Errors in Sent & Received Packets. It is an
-                                             unsigned long value and the range of acceptable values
-                                             is 0 to (2^32)-1 (inclusive). */
-
-    ULONG UnicastPacketsSent;           /**< Number of Unicast Packets Sent. It is an unsigned long
-                                             value and the range of acceptable values is 0 to
-                                             (2^32)-1 (inclusive). */
-    
-    ULONG UnicastPacketsReceived;       /**< Number of Unicast Packets Received. It is an unsigned
-                                             long value and the range of acceptable values is 0 to
-                                             (2^32)-1 (inclusive). */
-
-    ULONG DiscardPacketsSent;           /**< Number of Packets Discard (Tx side). It is an unsigned
-                                             long value and the range of acceptable values is 0 to
-                                             (2^32)-1 (inclusive). */
-    
-    ULONG DiscardPacketsReceived;       /**< Number of Packets Discard (Rx side). It is an unsigned
-                                             long value and the range of acceptable values is 0 to
-                                             (2^32)-1 (inclusive). */
-
-    ULONG MulticastPacketsSent;         /**< Number of Multicast Packets Sent. It is an unsigned long
-                                             value and the range of acceptable values is 0 to (2^32)-1
-                                             (inclusive). */
-    
-    ULONG MulticastPacketsReceived;     /**< Number of Multicast Packets Received. It is an unsigned
-                                             long value and the range of acceptable values is 0 to
-                                             (2^32)-1 (inclusive). */
-
-    ULONG BroadcastPacketsSent;         /**< Number of Broadcast Packets Sent. It is an unsigned long
-                                             value and the range of acceptable values is 0 to (2^32)-1
-                                             (inclusive). */
-    
-    ULONG BroadcastPacketsReceived;     /**< Number of Broadcast Packets Received. It is an unsigned
-                                             long value and the range of acceptable values is 0 to
-                                             (2^32)-1 (inclusive). */
-
-    ULONG UnknownProtoPacketsReceived;  /**< Number of Unknown Protocol Packets Received. It is an
-                                             unsigned long value and the range of acceptable values
-                                             is 0 to (2^32)-1 (inclusive). */
-
-    ULONG ExtAggrAverageTx;             /**< Aggregate Averages of Packet Counts (Tx). It is an unsigned
-                                             long value and the range of acceptable values is 0 to
-                                             (2^32)-1 (inclusive). */
-    
-    ULONG ExtAggrAverageRx;             /**< Aggregate Averages of Packet Counts (Rx). It is an unsigned
-                                             long value and the range of acceptable values is 0 to (2^32)-1
-                                             (inclusive). */
-}
-moca_stats_t;
-
-
+/**
+ * @brief Counters for various MoCA MAC-layer packets.
+ */
 typedef struct
 {
-    ULONG Map;    /**< Number of MAP packets. It is an unsigned
-                       long value and the range of acceptable values
-                       is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG Rsrv;   /**< Number of Reservation Request Packets. It is
-                       an unsigned long value and the range of acceptable
-                       values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG Lc;     /**< Number of Link Control Packets. It is an unsigned
-                       long value and the range of acceptable values is 0
-                       to (2^32)-1 (inclusive). */
-    
-    ULONG Adm;    /**< Number of Admission Request Packets. It is an
-                       unsigned long value and the range of acceptable values
-                       is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG Probe;  /**< Number of Probes. It is an unsigned long value and
-                       the range of acceptable values is 0 to (2^32)-1
-                       (inclusive). */
-    
-    ULONG Async;  /**< Number of Beacons. It is an unsigned long value and
-                       the range of acceptable values is 0 to (2^32)-1
-                       (inclusive). */
-}
-moca_mac_counters_t;
+    ULONG Map;   /**< Number of MAP (MoCA Access Protocol) packets received */
+    ULONG Rsrv;  /**< Number of reservation request packets received */
+    ULONG Lc;    /**< Number of link control packets received */
+    ULONG Adm;   /**< Number of admission request packets received */
+    ULONG Probe; /**< Number of probe packets received */
+    ULONG Async; /**< Number of asynchronous (beacon) packets received */
+} moca_mac_counters_t;
 
+/**
+ * @brief Aggregate counters for transmitted and received MoCA payload data units (PDUs).
+ */
 typedef struct
 {
-    ULONG Tx;  /**< Aggregate Tx Payload Data Units (Not MoCA Control Packets).
-                    It is an unsigned long value and the range of acceptable
-                    values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG Rx;  /**< Aggregate Rx Payload Data Units (Not MoCA Control Packets).
-                    It is an unsigned long value and the range of acceptable
-                    values is 0 to (2^32)-1 (inclusive). */
-}
-moca_aggregate_counters_t;
+    ULONG Tx;  /**< Total number of transmitted payload data units (PDUs), excluding MoCA control packets */
+    ULONG Rx;  /**< Total number of received payload data units (PDUs), excluding MoCA control packets */
+} moca_aggregate_counters_t;
 
+/**
+ * @brief Represents a MoCA Customer Premises Equipment (CPE) node.
+ */
 typedef struct
 {
-    CHAR mac_addr[6];  /**< MAC Address of the Node. mac_addr is a 6 bytes character
-                            array. The MAC Address should be in the format AA:BB:CC:DD:EE:FF
-                            (colon-separated). Range of acceptable value for each hexadecimal
-                            byte is from 0 to 0xFF. */
-}
-moca_cpe_t;
+    CHAR mac_addr[6];  /**< MAC address of the CPE node (format: AA:BB:CC:DD:EE:FF) */
+} moca_cpe_t;
 
+/**
+ * @brief Information about a device associated with the MoCA network.
+ */
 typedef struct
 {
-    /**< This Data Structure corresponds to information of
-        the associated device on the network. The term
-        'this Node' pertains to that particulard device for
-        which the information in this data structure is
-        valid */
-
-    UCHAR MACAddress[6 + MAC_PADDING]; /**< MAC Address of the Associated Device
-                                            MacAddress is a [6 + MAC_PADDING] bytes character array.
-                                            MAC_PADDING is a 12 bytes. RDKB expects 6 byte MAC, padding
-                                            required for platforms handling as 18 bytes MAC. The MAC Address
-                                            should be in the format AA:BB:CC:DD:EE:FF (colon-separated). Range
-                                            of acceptable value for each hexadecimal byte is from 0 to 0xFF.*/
-    
-    ULONG NodeID;                      /**< Node ID of the Associated Device. It is an unsigned long value and
-                                            the range of acceptable values is 0 to (2^32)-1 (inclusive). It is a
-                                            vendor specific value. */
-    
-    BOOL PreferredNC;                  /**< Enable/Disable the Node's preference to be Network Coordinator using
-                                            PreferredNC. If the Local Node's preference to be Network Coordinator is
-                                            enabled, the PreferredNC Flag is TRUE; otherwise, it is FALSE. */
-    
-    CHAR HighestVersion[64];           /**< Highest MoCA Protocol Version that this Node supports. HighestVersion is
-                                            a 64 bytes character array. Possible Valid values are 1.0, 1.1 and 2.0. It
-                                            is a vendor specific value. */
-    
-    ULONG PHYTxRate;                   /**< Tx PHY Rate of this Node. It is an unsigned long value and the range of
-                                            acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG PHYRxRate;                   /**< Rx PHY Rate of this Node. It is an unsigned long value and the range of
-                                            acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG TxPowerControlReduction;     /**< Tx Power Reduced by this Node. It is an unsigned long value and the range of
-                                            acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    INT RxPowerLevel;                  /**< Rx Power Level read by this Node. It is a signed integer value and the
-                                            range of acceptable values is -(2^31) to (2^31)-1 (inclusive). */
-    
-    ULONG TxBcastRate;                 /**< Tx Broadcast PHY Rate. It is an unsigned long value and the range of
-                                            acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    INT RxBcastPowerLevel;             /**< Rx Broadcast Power Level read by this Node. It is a signed integer value
-                                            and the range of acceptable values is -(2^31) to (2^31)-1 (inclusive). */
-    
-    ULONG TxPackets;                   /**< Number of Transmitted Packets from this Node. It is an unsigned long value and
-                                            the range of acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG RxPackets;                   /**< Number of Recieved Packets by this Node. It is an unsigned long value and
-                                            the range of acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG RxErroredAndMissedPackets;   /**< Number of (Rx) Error or Missed Packets by this Node. It is an unsigned long
-                                            value and the range of acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    BOOL QAM256Capable;                /**< Flag if this Node is capable of QAM-256. Enable/Disable the Local Node is
-                                            QAM-256 Capable or Not. If the Local Node with QAM-256 Capable is enabled,
-                                            the QAM256Capable Flag is TRUE; otherwise, it is FALSE. */
-    
-    BOOL PacketAggregationCapability;  /**< Flag if this Node is capable of Packet Aggregation. Enable/Disable
-                                            the Local Node can aggregate Ethernet Packets for MoCA PDU transfers. If
-                                            the Local Node can aggregate Ethernet Packets for MoCA PDU transfersis
-                                            Scanning is enabled, the PacketAggregationCapability Flag is TRUE;
-                                            otherwise, it is FALSE. */
-    
-    ULONG RxSNR;                       /**< Receive Signal to Noise Ration. It is an unsigned long value and
-                                            the range of acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    BOOL Active;                       /**< Enable/Disable the this Node or Not. If the this Node is enabled,
-                                            the Active Flag is TRUE; otherwise, it is FALSE. */
-    
-    ULONG RxBcastRate;                 /**< Recevie Broadcast PHY Rate. It is an unsigned long value and the range of
-                                            acceptable values is 0 to (2^32)-1 (inclusive).  */
-    
-    ULONG NumberOfClients;             /**< Number of Clients connected to this Node. It is an unsigned long value and the
-                                            range of acceptable values is 0 to (2^32)-1 (inclusive). */    
-}
-moca_associated_device_t;
+    UCHAR MACAddress[6 + MAC_PADDING];   /**< MAC address of the associated device (format: AA:BB:CC:DD:EE:FF) */
+    ULONG NodeID;                      /**< Node ID of the associated device (vendor-specific) */
+    BOOL PreferredNC;                  /**< Flag: TRUE if the device prefers to be Network Coordinator, FALSE otherwise */
+    CHAR HighestVersion[64];            /**< Highest MoCA protocol version supported by the device (e.g., "1.0", "1.1", "2.0") */
+    ULONG PHYTxRate;                   /**< Transmit PHY rate of the device */
+    ULONG PHYRxRate;                   /**< Receive PHY rate of the device */
+    ULONG TxPowerControlReduction;     /**< Transmit power reduction applied by the device (in dB) */
+    INT RxPowerLevel;                  /**< Received power level measured by the device (dBm) */
+    ULONG TxBcastRate;                 /**< Transmit broadcast PHY rate of the device */
+    INT RxBcastPowerLevel;             /**< Received broadcast power level measured by the device (dBm) */
+    ULONG TxPackets;                   /**< Number of packets transmitted by the device */
+    ULONG RxPackets;                   /**< Number of packets received by the device */
+    ULONG RxErroredAndMissedPackets;   /**< Number of errored or missed packets received by the device */
+    BOOL QAM256Capable;                /**< Flag: TRUE if the device is QAM-256 capable, FALSE otherwise */
+    BOOL PacketAggregationCapability;  /**< Flag: TRUE if the device supports packet aggregation, FALSE otherwise */
+    ULONG RxSNR;                       /**< Receive Signal-to-Noise Ratio (SNR) measured by the device */
+    BOOL Active;                      /**< Flag: TRUE if the device is active on the network, FALSE otherwise */
+    ULONG RxBcastRate;                 /**< Receive broadcast PHY rate of the device */
+    ULONG NumberOfClients;             /**< Number of clients connected to this device (if it's a node) */
+} moca_associated_device_t;
 
 #ifndef MOCA_VAR
+/**
+ * @brief Represents an entry in the MoCA mesh PHY rate table.
+ *
+ * This table stores the unicast transmit PHY rates between all pairs of nodes in the MoCA network.
+ */
 typedef struct
 {
-    /**< This data structure represents teh MoCA mesh PHY rate table.
-       This table contains the unicast transmit PHY rate between all
-       pair of nodes in the MoCA Network.*/
-
-    ULONG RxNodeID;     /**< The node ID of the receive MoCA node is used as one of the
-                             index to order the mesh PHY rate table. It is an unsigned long
-                             value and the range of acceptable values is 0 to (2^32)-1 (inclusive). */
-
-    ULONG TxNodeID;     /**< The node ID of the transmit MoCA node is used as one of the
-                             index to order the mesh PHY rate table. It is an unsigned long
-                             value and the range of acceptable values is 0 to (2^32)-1 (inclusive). */
-
-    ULONG TxRate;       /**< Indicate the transmit PHY rate in Mbps from the MoCA node
-                             identified by 'mocaMeshTxNodeIndex' to the MoCA node identified
-                             by 'mocaMeshRxNodeIndex'. It is an unsigned long value and the range of
-                             acceptable values is 0 to (2^32)-1 (inclusive). */
-
-    ULONG TxRateNper;   /**< Only for MoCA 2.x. It is an unsigned long value and the range of acceptable
-                             values is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG TxRateVlper;  /**< Only for MoCA 2.x. It is an unsigned long value and the range of acceptable
-                             values is 0 to (2^32)-1 (inclusive). */
-
-}
-moca_mesh_table_t;
+    ULONG RxNodeID;     /**< Receiving node ID (used as one index in the table) */
+    ULONG TxNodeID;     /**< Transmitting node ID (used as another index in the table) */
+    ULONG TxRate;       /**< Transmit PHY rate from TxNodeID to RxNodeID (in Mbps) */
+    ULONG TxRateNper;   /**< MoCA 2.x: Transmit PHY rate for NPER (Network Performance Enhancement Rate) (in Mbps) */
+    ULONG TxRateVlper;  /**< MoCA 2.x: Transmit PHY rate for VLPER (Very Low Packet Error Rate) (in Mbps) */
+} moca_mesh_table_t;
 #endif
 
+/**
+ * @brief Represents an entry in the MoCA interface flow statistics table.
+ *
+ * This table provides statistics about ingress PQoS (Priority Quality of Service) flows in a MoCA interface.
+ */
 typedef struct
 {
-    /**< This Data Structure represents the MoCA interface flow statistics
-         table. This table provides statistics of ingress PQoS flow in the
-         MoCA interface. */
+    ULONG FlowID;              /**< Flow ID of the PQoS flow */
+    ULONG IngressNodeID;       /**< Node ID where the PQoS flow enters the MoCA network */
+    ULONG EgressNodeID;        /**< Node ID where the PQoS flow leaves the MoCA network */
+    ULONG FlowTimeLeft;        /**< Remaining lease time of the PQoS flow */
+    char DestinationMACAddress[18];   /**< Destination MAC address of Ethernet packets in the PQoS flow */
+    ULONG PacketSize;          /**< Number of MoCA aggregated frames in the PQoS flow */
+    ULONG PeakDataRate;        /**< Peak data rate of the PQoS flow (in bits per second) */
+    ULONG BurstSize;           /**< Burst size of the PQoS flow (in bytes) */
+    ULONG FlowTag;            /**< Application-specific flow tag of the PQoS flow */
+    ULONG LeaseTime;           /**< Initial lease time of the PQoS flow (in seconds) */
+} moca_flow_table_t;
 
-    ULONG  FlowID;                    /**< Indicate the flow ID of a PQoS flow. It is an
-                                           unsigned long value and the range of acceptable values
-                                           is 0 to (2^32)-1 (inclusive). */
-    
-    ULONG  IngressNodeID;             /**< Indicate the Node ID of an Ingress PQoS flow. It is an
-                                           unsigned long value and the range of acceptable values is 0 to
-                                           (2^32)-1 (inclusive). */
-    
-    ULONG  EgressNodeID;              /**< Indicate the Node ID of an Egress PQoS flow. It is an
-                                           unsigned long value and the range of acceptable values is 0 to
-                                           (2^32)-1 (inclusive). */
-    
-    ULONG  FlowTimeLeft;              /**< Indicate the LEASE_TIME_LEFT of the PQoS flow identified by
-                                           'mocaIfFlowID' in which this MoCA interface is an ingress
-                                           node for this PQoS flow. It is an unsigned long value and the range
-                                           of acceptable values is 0 to (2^32)-1 (inclusive). */
-                                        
-    char   DestinationMACAddress[18]; /**< Indicate the Destination Address (DA) of Ethernet packets of
-                                           the PQoS Flow for which this node is the ingress node.
-                                           DestinationMACAddress is a 18 bytes character array. The MAC
-                                           Address should be in the format AA:BB:CC:DD:EE:FF (colon-separated).
-                                           Range of acceptable value for each hexadecimal byte is from 0 to 0xFF. */
-                                        
-    ULONG  PacketSize;                /**< Indicate the number of MoCA aggregation MoCA frames. It is an
-                                           unsigned long value and the range of acceptable values is 0 to
-                                           (2^32)-1 (inclusive). */
-    
-    ULONG  PeakDataRate;              /**< Indicate the T_PEAK_DATA_RATE of the PQoS flow identified by
-                                           'mocaIfFlowID' in which this MoCA interface is an ingress
-                                           node for the PQoS flow. It is an unsigned long value and the range
-                                           of acceptable values is 0 to (2^32)-1 (inclusive). */
-                                        
-    ULONG  BurstSize;                 /**< Indicate the T_BURST_SIZE of the PQoS flow identified by
-                                           'mocaIfFlowID' in which this MoCA interface is an ingress
-                                           node for this PQoS flow. It is an unsigned long value and the range
-                                           of acceptable values is 0 to (2^32)-1 (inclusive). */
-                                        
-    ULONG  FlowTag;                   /**< Indicate the FLOW_TAG of the PQoS flow identified by
-                                           'mocaIfFlowID' in which this MoCA interface is an ingress node
-                                           for this PQoS flow. The FLOW_TAG carries application specific
-                                           content of this PQoS flow. It is an unsigned long value and the range
-                                           of acceptable values is 0 to (2^32)-1 (inclusive). */
-                                        
-    ULONG  LeaseTime;                 /**< Indicate the T_LEASE_TIME of the PQoS flow identified by
-                                           'mocaIfFlowID' in which this MoCA interface is an ingress node
-                                           for this PQoS flow. It is an unsigned long value and the range
-                                           of acceptable values is 0 to (2^32)-1 (inclusive). */
-}
-moca_flow_table_t;
+/**
+ * @brief Callback function type for MoCA associated device events.
+ *
+ * This callback is invoked when a MoCA client is activated or deactivated on the network.
+ * 
+ * @param ifIndex The index of the MoCA interface where the event occurred.
+ * @param moca_dev Pointer to a `moca_associated_device_t` structure containing information about the associated device. 
+ *                 The `Active` member of this structure indicates whether the device has been activated (TRUE) or deactivated (FALSE).
+ *
+ * @return INT A status code indicating the result of handling the event.
+ */
+typedef INT (*moca_associatedDevice_callback)(ULONG ifIndex, moca_associated_device_t *moca_dev);
 
-
-typedef INT ( * moca_associatedDevice_callback)(ULONG ifIndex, moca_associated_device_t *moca_dev); //This call back will be invoked when new MoCA client is Actived or Inactived.moca_associated_device_t.Active is used to indicate activation/inactivation
-
+/**
+ * @brief Information about a MoCA node's preferred network coordinator (NC) status.
+ */
 typedef struct moca_assoc_pnc_info
 {
-    ULONG mocaNodeIndex;       /**< The index of this node */
-    
-    BOOL  mocaNodePreferredNC; /**< Whether this Node is a Preferred NC. */
-    
-    ULONG mocaNodeMocaversion; /**< The MoCA version of this node */
-}
-moca_assoc_pnc_info_t;
+    ULONG mocaNodeIndex;      /**< The index (or ID) of the MoCA node */
+    BOOL  mocaNodePreferredNC; /**< Flag: TRUE if the node is a preferred network coordinator (NC), FALSE otherwise */
+    ULONG mocaNodeMocaversion; /**< MoCA version supported by the node (e.g., 10 for MoCA 1.0, 11 for MoCA 1.1, 20 for MoCA 2.0) */
+} moca_assoc_pnc_info_t;
 
-
+/**
+ * @brief Subcarrier modulation statistics for a MoCA link between two nodes.
+ */
 typedef struct
 {
-    INT TxNode;        /**< The NODE ID of Transmit MOCA NODE.
-                            It is a signed integer value and the
-                            range of acceptable values is -(2^31)
-                            to (2^31)-1 (inclusive).*/
-    
-    INT RxNode;        /**< The Node ID of Receive MOCA Node.It is
-                            a signed integer value and the range of
-                            acceptable values is -(2^31) to (2^31)-1
-                            (inclusive). */
-    
-    INT Channel;       /**< The Primary channel or Secondary channel used
-                            to calculate the NPER and VLPER It is a signed
-                            integer value and the range of acceptable values
-                            is -(2^31) to (2^31)-1 (inclusive).*/
-    
-    UCHAR Mod[512];    /**< Subcarrier MODULATION used to calcuate the NPER and
-                            VLPER between two nodes. It is a array of integer named
-                            Mod consisting of 512 elements. Each element is of an
-                            unsigned long type and the range of acceptable values is
-                            0 to (2^32)-1 (inclusive). */
-    
-    UCHAR Nper[512];   /**< Each NPER of between two nodes on Corresponding Channel
-                            It is a array of integer named Nper consisting of 512 elements.
-                            Each element is of an unsigned long type and the range of acceptable
-                            values is 0 to (2^32)-1 (inclusive). */
-                            
-    UCHAR Vlper[512];  /**< Each Vlper of between two nodes on Corresponding Channel
-                            It is a array of integer named Vlper consisting of 512 elements.
-                            Each element is of an unsigned long type and the range of acceptable
-                            values is 0 to (2^32)-1 (inclusive). */
-}
-moca_scmod_stat_t;
+    INT TxNode;    /**< Transmitting MoCA node ID */
+    INT RxNode;    /**< Receiving MoCA node ID */
+    INT Channel;   /**< Channel used for the NPER and VLPER calculations (primary or secondary) */
 
+    UCHAR Mod[512];   /**< Modulation scheme used for each subcarrier (512 elements, each 0 to (2^32)-1) */
+    UCHAR Nper[512];  /**< NPER (Network Performance Enhancement Rate) for each subcarrier on the channel (512 elements, each 0 to (2^32)-1) */
+    UCHAR Vlper[512]; /**< VLPER (Very Low Packet Error Rate) for each subcarrier on the channel (512 elements, each 0 to (2^32)-1) */
+} moca_scmod_stat_t;
+
+/**
+ * @brief Configuration parameters for initiating an ACA (Automatic Channel Adaptation) test.
+ */
 typedef struct
 {
-    UINT NodeID;          /**< The NodeID where we want to start the ACA testing
-                               It is an unsigned integer value and the range of
-                               acceptable values is 0 to (2^32)-1 (inclusive). */
-    
-    PROBE_TYPE Type;      /**< The Probe Type could be Enum EVM=1 or Quite=0
-                               The range of acceptable values is 0 to 1 based on
-                               PROBE_TYPE enum type value. The enum PROBE_TYPE defined below.
-                               PROBE_QUITE = 0
-                               PROBE_EVM = 1 */
-    
-    UINT Channel;         /**< The Channel on which ACA test should start
-                               It is an unsigned integer value and the range
-                               of acceptable values is 0 to (2^32)-1 (inclusive).*/
-    
-    UINT ReportNodes;     /**< Specifies the MoCA Nodes that are requested to be part of the channel assessment:
-                               Setting bits corresponding to Node IDs of these MoCA Nodes to 1
-                               (LSB corresponds to Node ID 0x0).
-                               For example: 0000 0000 0000 0101 can be represented as 0x0005,
-                               Node 0 and Node 2. */
-                            
-    BOOL ACAStart;        /**< The ACAStart will indicate to start the ACA process or not.
-                               0 for no action, 1 for config and start the process */
-}
-moca_aca_cfg_t;
+    UINT NodeID;      /**< Node ID where the ACA test should start */
+    PROBE_TYPE Type;  /**< Type of probe to use during the ACA test (PROBE_QUITE or PROBE_EVM) */
+    UINT Channel;    /**< Channel on which the ACA test should start */
+    UINT ReportNodes; /**< Bitmask indicating which MoCA nodes should be included in the assessment (LSB = Node 0) */
+    BOOL ACAStart;    /**< Flag to start the ACA process: TRUE to start, FALSE for no action */
+} moca_aca_cfg_t;
 
+/**
+ * @brief Status and results of an ACA (Automatic Channel Adaptation) test.
+ */
 typedef struct
 {
-    moca_aca_cfg_t acaCfg;          /**< The current configuration on ACA process started
-                                         The members of the moca_aca_cfg_t structure are defined below.
-                                                    NodeID                            - The NodeID where we want to start the ACA testing.
-                                                                                        It is an unsigned integer value and the range of acceptable values is 0 to 
-                                                                                        (2^32)-1 (inclusive).
-
-                                                    Type                              - The Probe Type could be Enum EVM=1 or Quite=0.
-                                                                                        The range of acceptable values is 0 to 1 based on PROBE_TYPE enum type value.
-                                                                                        The enum PROBE_TYPE defined below.
-                                                                                        PROBE_QUITE = 0
-                                                                                        PROBE_EVM = 1
-
-                                                    Channel                           - The Channel on which ACA test should start.
-                                                                                        It is an unsigned integer value and the range of acceptable values is 0 to 
-                                                                                        (2^32)-1 (inclusive).
-
-                                                    ReportNodes                       - Specifies the MoCA Nodes that are requested to be part of the channel assessment:
-                                                                                        Setting bits corresponding to Node IDs of these MoCA Nodes to 1 (LSB corresponds
-                                                                                        to Node ID 0x0). For example: 0000 0000 0000 0101 can be represented as 0x0005,
-                                                                                        Node 0 and Node 2. It is an unsigned long value and the range of acceptable values 
-                                                                                        is 0 to (2^32)-1 (inclusive).
-
-                                                    DestinationMACAddress[18]         - Indicate the Destination Address (DA) of Ethernet packets of the PQoS Flow for
-                                                                                        which this node is the ingress node. DestinationMACAddress is a 18 bytes character
-                                                                                        array. The MAC Address should be in the format AA:BB:CC:DD:EE:FF (colon-separated).
-                                                                                        Range of acceptable value for each hexadecimal byte is from 0 to 0xFF.
-
-                                                    ACAStart                          - The ACAStart will indiacte to start the ACA process or not.
-                                                                                        If the start the ACA process is enabled, the ACAStart Flag is TRUE for config; 
-                                                                                        otherwise, it is FALSE for no action. */
-    
-    INT stat;                       /**< Stats of the ACA process. The range of acceptable values
-                                         is 0 to 4. Results equivalent to acceptables values are
-                                         SUCCESS=0, Fail-BADCHANNEL=1, Fail-NoEVMPROBE=2,
-                                         Fail=3, In-Progress=4 */
-                                        
-    INT RxPower;                    /**< Total RX Power in DBM */
-    
-    INT ACAPowProfile[512];         /**< Power Profile Representation for each channel It is
-                                         a array of integer named ACAPowProfile consisting of
-                                         512 elements. It is a signed integer value and the range
-                                         of acceptable value for each element is -(2^31) to (2^31)-1
-                                         (inclusive). */
-    
-    BOOL ACATrapCompleted;          /**< mocaIfAcaStatusTrapCompleted ReadOnly parameter,
-                                         If the PowerPorfile is ready, the ACATrapComplete
-                                         Flag is TRUE; otherwise, it is FALSE. */
-}
-moca_aca_stat_t;
+    moca_aca_cfg_t acaCfg;      /**< Configuration used for the ACA test (see moca_aca_cfg_t) */
+    INT stat;                  /**< Status of the ACA process: 0 (SUCCESS), 1 (FAIL_BADCHANNEL), 2 (FAIL_NOEVMPROBE), 3 (FAIL), or 4 (IN_PROGRESS) */
+    INT RxPower;               /**< Total received power (dBm) */
+    INT ACAPowProfile[512];     /**< Power profile for each channel (dBm), where each element represents a channel and the value is the power level */
+    BOOL ACATrapCompleted;     /**< Flag: TRUE if the power profile is ready, FALSE otherwise */
+} moca_aca_stat_t;
 
 /** @} */  //END OF GROUP MOCA_HAL_TYPES
 
-void moca_associatedDevice_callback_register(moca_associatedDevice_callback callback_proc); //Callback registration function.
+/**
+ * @brief Registers a callback function to be invoked on MoCA associated device events.
+ *
+ * This function allows you to register a callback function that will be called whenever a MoCA client is
+ * activated or deactivated on the network.
+ *
+ * @param callback_proc Pointer to the callback function of type `moca_associatedDevice_callback`. 
+ *                      This function will be called with the interface index and associated device information.
+ */
+void moca_associatedDevice_callback_register(moca_associatedDevice_callback callback_proc); 
 
 /**
  * @addtogroup MOCA_HAL_APIS
@@ -819,26 +501,23 @@ void moca_associatedDevice_callback_register(moca_associatedDevice_callback call
  *
 **********************************************************************************/
 
-/*
- * TODO:
- *
+/* TODO:
  * 1. Extend the return codes by listing out the possible reasons of failure, to improve the interface in the future.
  *    This was reported during the review for header file migration to opensource github.
- *
- */
-
+ */ 
 
 /* moca_GetIfConfig() function */
+/**
 /**
 * @brief Gets the MoCA Configuration Parameters that were previously set.
 *
 * @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
+*           \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
 * @param[out] pmoca_config - A pointer to structure of type moca_cfg_t for configuration parameters.
 *
 * @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
+* @retval STATUS_SUCCESS - if successful.
+* @retval STATUS_FAILURE - if any error is detected.
 *
 * @execution Synchronous.
 *
@@ -847,366 +526,328 @@ INT moca_GetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
 
 /* moca_SetIfConfig() function */
 /**
-* @brief Sets the MoCA Configuration Parameters.
-*
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[in] pmoca_config - A pointer to structure of type moca_cfg_t for configuration parameters.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Sets the MoCA Configuration Parameters.
+ *
+ * @param[in] ifIndex - Index of the MoCA Interface.
+ *                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
+ * @param[in] pmoca_config - A pointer to structure of type moca_cfg_t for configuration parameters.
+ *
+ * @return The status of the operation.
+ * @retval STATUS_SUCCESS - if successful.
+ * @retval STATUS_FAILURE - if any error is detected.
+ *
+ * @execution Synchronous.
+ */
 INT moca_SetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
 
 /* moca_IfGetDynamicInfo() function */
 /**
-* @brief Gets the Dynamic Status information on the interface & its associated network.
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] pmoca_dynamic_info - A pointer to structure of type moca_dynamic_info_t for configuration parameters.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Gets the dynamic status information of a MoCA interface and its associated network.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] pmoca_dynamic_info Pointer to a `moca_dynamic_info_t` structure to store the retrieved dynamic information.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 INT moca_IfGetDynamicInfo(ULONG ifIndex, moca_dynamic_info_t *pmoca_dynamic_info);
 
 /* moca_IfGetStaticInfo() function */
 /**
-* @brief Gets the Static Information from the Local Node.
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] pmoca_static_info - A pointer to structure of type moca_static_info_t for static information of the interface.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves static information about a MoCA interface.
+ *
+ * This function fetches static information (e.g., firmware version, MAC address, protocol capabilities) 
+ * from the specified MoCA interface. The retrieved information is populated into the provided
+ * `moca_static_info_t` structure.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] pmoca_static_info Pointer to a `moca_static_info_t` structure to store the retrieved static information.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 INT moca_IfGetStaticInfo(ULONG ifIndex, moca_static_info_t *pmoca_static_info);
 
 /* moca_IfGetStats() function */
 /**
-* @brief Gets the Statistics on the Interface at Network Layer.
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] pmoca_stats - A pointer to structure of type moca_stats_t for statistics on the interface (Network layer).
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves network layer statistics for a MoCA interface.
+ *
+ * This function fetches statistics related to the network layer operation of a specified MoCA interface. 
+ * The retrieved statistics are populated into the provided `moca_stats_t` structure.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] pmoca_stats Pointer to a `moca_stats_t` structure to store the retrieved statistics.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 INT moca_IfGetStats(ULONG ifIndex, moca_stats_t *pmoca_stats);
 
 /* moca_GetNumAssociatedDevices() function */
 /**
-* @brief Gets the Number of Nodes on the MoCA network.
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] pulCount - A pointer to an unsigned long variable to store the Number of Nodes on the network.
-*                        \n The range of acceptable values is 0 to (2^32)-1 (inclusive).
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves the number of associated devices on a MoCA network.
+ *
+ * This function returns the count of devices connected to the MoCA network associated with the specified interface.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] pulCount Pointer to an unsigned long integer to store the retrieved number of associated devices.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 INT moca_GetNumAssociatedDevices(ULONG ifIndex, ULONG *pulCount);
 
 /* moca_IfGetExtCounter() function */
 /**
-* @brief Gets the Statistics on the Interface at MoCA MAC Layer.
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] pmoca_mac_counters - A pointer to structure of type moca_mac_counters_t for the MoCA MAC Layer Statiscs.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves MoCA MAC layer statistics for an interface.
+ *
+ * This function fetches statistical counters related to the MoCA MAC layer for the specified interface.
+ * The retrieved counters are populated into the provided `moca_mac_counters_t` structure.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] pmoca_mac_counters Pointer to a `moca_mac_counters_t` structure to store the retrieved MAC layer statistics.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 INT moca_IfGetExtCounter(ULONG ifIndex, moca_mac_counters_t *pmoca_mac_counters);
 
 /* moca_IfGetExtAggrCounter() function */
 /**
-* @brief Gets the Aggregate DATA units Transferred (Tx & Rx)
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] pmoca_aggregate_counts - A pointer to structure of type moca_aggregate_counters_t for Aggregate Tx/Rx Counters.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves aggregate transmit and receive data unit counters for a MoCA interface.
+ *
+ * This function fetches the aggregate counts of transmitted and received data units (excluding MoCA control packets) 
+ * for the specified MoCA interface. The retrieved counters are populated into the provided `moca_aggregate_counters_t` structure.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] pmoca_aggregate_counts Pointer to a `moca_aggregate_counters_t` structure to store the retrieved counters.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 INT moca_IfGetExtAggrCounter(ULONG ifIndex, moca_aggregate_counters_t *pmoca_aggregate_counts);
 
 /* moca_GetMocaCPEs() function */
 /**
-* @brief Get MAC Address of all the Nodes Connected on MoCA Network.
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] cpes - A pointer to structure of type moca_cpe_t for the List of MAC Addresses of MoCA Nodes.
-* @param[out] pnum_cpes - A pointer to an integer to store the Number of MoCA Nodes in the List.
-*                         \n The range of acceptable values is 0 to (2^31)-1 (inclusive).
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves the MAC addresses of all MoCA nodes on the network.
+ *
+ * This function fetches the MAC addresses of all MoCA Customer Premises Equipment (CPE) nodes 
+ * connected to the MoCA network associated with the specified interface. The retrieved MAC 
+ * addresses are stored in the provided `cpes` array, and the count of nodes is returned in `pnum_cpes`.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] cpes Array of `moca_cpe_t` structures to store the retrieved MAC addresses. 
+ *                  The array should be pre-allocated with enough space for `kMoca_MaxCpeList` (256) entries.
+ * @param[out] pnum_cpes Pointer to an integer variable to store the number of MoCA nodes found on the network.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 INT moca_GetMocaCPEs(ULONG ifIndex, moca_cpe_t *cpes, INT *pnum_cpes);
 
 /* moca_GetAssociatedDevices() function */
 /**
-* @brief Get Information on all the associated Devices on the network.
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] ppdevice_array - A pointer to a pointer to the structure `moca_associated_device_t` to store the set of information for each Node on the network.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves information about all associated devices on the MoCA network.
+ *
+ * This function fetches detailed information about each MoCA device connected to the network associated with the specified interface. 
+ * The retrieved data includes MAC addresses, node IDs, PHY rates, power levels, and more.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] ppdevice_array Pointer to a pointer that will be populated with an array of `moca_associated_device_t` structures. 
+ *                            Each structure in the array contains information about a single associated device. 
+ *                            The caller is responsible for allocating memory for this array.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 INT moca_GetAssociatedDevices(ULONG ifIndex, moca_associated_device_t **ppdevice_array);
 
 
 /* moca_FreqMaskToValue() function */
 /**
-* @brief A utility function that converts Mask Value to Frequency Number.
-* @param[in] mask - Pointer to an array of UCHAR values representing the Bit Mask of the Frequency.
-*                   \n It is a vendor specific value.  Buffer size should be atleast 16 bytes and is vendor dependent.
-*
-* @return Frequency Value for the given Mask if successful. The range of values is 0 to (2^32)-1 (inclusive). Returns STATUS_FAILURE if any error is detected
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Converts a frequency mask to a frequency value.
+ *
+ * This utility function takes a bit mask representing a set of frequencies 
+ * and returns the corresponding frequency value. The specific interpretation
+ * of the mask and the resulting frequency value may be vendor-specific.
+ *
+ * @param mask Pointer to an array of bytes (`UCHAR`) representing the frequency mask.
+ *             The buffer size should be at least 16 bytes and is vendor-dependent.
+ *
+ * @return Frequency value corresponding to the given mask if successful, otherwise STATUS_FAILURE.
+ *
+ * @note The interpretation of the frequency mask and the range of valid output values may be vendor-specific.
+ */
 //INT moca_FreqMaskToValue(UINT mask);
 INT moca_FreqMaskToValue(UCHAR *mask);
 
 /* moca_HardwareEquipped() function */
 /**
-* @brief Function that returns whether the MoCA Hardware is Equipped or Not.
-*
-* @return Flag Indicating whether the Hardware is Equipped or not.
-* @retval TRUE if Hardware is present.
-* @retval FALSE if Hardware is not present.
-*
-* @remark The return value is based on the current state of the hardware and its configuration.
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Checks if MoCA hardware is equipped and available.
+ *
+ * This function determines whether MoCA hardware is present and correctly configured on the system.
+ *
+ * @return TRUE if MoCA hardware is equipped and available, FALSE otherwise.
+ */
 BOOL moca_HardwareEquipped(void);
 
 /* moca_GetFullMeshRates() function */
-/**
-* @brief Gets the MoCA Full Mesh Rates.
-*
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] pDeviceArray -  A Pointer to the structure moca_mesh_table_t which contains the MoCA mesh table configurations to be set.
-* @param[out] pulCount - A pointer to an unsigned long variable to store the Number of Nodes on the network.
-*                        \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-* @execution Synchronous.
-*
-*
-*/
 #ifndef MOCA_VAR
+/**
+ * @brief Retrieves MoCA full mesh PHY rates.
+ *
+ * This function fetches the complete mesh PHY (physical layer) rates between all pairs of MoCA nodes on the network associated with the specified interface.
+ * The retrieved rates are stored in the provided `pDeviceArray`, and the number of entries in the array is returned in `pulCount`.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] pDeviceArray Pointer to a `moca_mesh_table_t` array to store the retrieved mesh PHY rate table. 
+ *                          The caller must allocate enough memory for this array to hold entries for all possible node pairs.
+ * @param[out] pulCount Pointer to an unsigned long integer to store the number of entries written to the `pDeviceArray`.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ *
+ * @note This function is only available when the `MOCA_VAR` macro is not defined.
+ */
 INT moca_GetFullMeshRates(ULONG ifIndex, moca_mesh_table_t *pDeviceArray, ULONG *pulCount);
 #endif
 
 /* moca_GetFlowStatistics() function */
 /**
-* @brief Gets the MoCA Flow Table.
-* @param[in] ifIndex - Index of the MoCA Interface.
-*                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] pDeviceArray - A Pointer to the structure moca_flow_table_t which contains the MoCA flow table configurations to be set.
-* @param[out] pulCount - A pointer to an unsigned long variable to store the number of entries in the table.
-*                        \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves MoCA flow statistics.
+ *
+ * This function fetches the entries in the MoCA flow table, which contains statistics for
+ * ingress PQoS (Priority Quality of Service) flows on the specified MoCA interface.
+ *
+ * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[out] pDeviceArray Pointer to a `moca_flow_table_t` array to store the retrieved flow table entries. 
+ *                          The caller must allocate enough memory for this array to hold all entries.
+ * @param[out] pulCount Pointer to an unsigned long integer to store the number of entries written to the `pDeviceArray`.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 INT moca_GetFlowStatistics(ULONG ifIndex, moca_flow_table_t *pDeviceArray, ULONG *pulCount);
 
 /* moca_GetResetCount() function */
 /**
-* @brief Gets the MoCA reset count.
-* @param[in] resetcnt - Pointer to an array of UCHAR values representing number of reset.
-*                       \n It is an unsigned long value and the range of acceptable values is 0 to (2^64)-1.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-* @remark The reset count is an unsigned long value that indicates the number of times the MOCA module has been reset.
-*         \n If the operation fails, the reset count value remains unchanged.
-*
-* @execution Synchronous.
-*
-*
-*/
-
+ * @brief Retrieves the MoCA reset count.
+ *
+ * This function fetches the number of times the MoCA module has been reset. 
+ *
+ * @param[out] resetcnt Pointer to an unsigned long integer where the reset count will be stored.
+ *
+ * @return Status of the operation.
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ *
+ * @note If the operation fails, the value pointed to by `resetcnt` remains unchanged.
+ */
 INT moca_GetResetCount(ULONG *resetcnt);
 
 /****************************************************************/
 /* moca_SetIfAcaConfig() function */
 /**
-* @brief Sets the MoCA Configuration Parameters to start the ACA process.
-* @param[in] interfaceIndex - Index of the MoCA Interface.
-*                             \n It is an integer value and the range of acceptable values is 0 to (2^31)-1.
-* @param[in] acaCfg - A variable to the structure moca_aca_cfg_t which contains the MoCA ACA configurations to be set.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected for unknown reason.
-* @retval STATUS_INPROGRESS if already the ACA process running.
-*
-*
-* @execution Synchronous.
-*
-*       \n ACAStart bit is set then ACA Process should get start.
-*       \n If user request ACA Start while ACA Process in progress, then HAL should send error saying ACA Is in progress.
-*       \n It should not start new one.
-*
-*/
+ * @brief Initiates the MoCA Automatic Channel Adaptation (ACA) process.
+ *
+ * This function configures and potentially starts the ACA process on the specified MoCA interface. The ACA process
+ * automatically selects the best operating channel for the MoCA network.
+ *
+ * @param interfaceIndex The index of the MoCA interface.
+ * @param[in] acaCfg Configuration parameters for the ACA process (see `moca_aca_cfg_t`). 
+ *                   Setting the `ACAStart` member to `TRUE` will trigger the ACA process.
+ *
+ * @return Status of the operation:
+ * @retval STATUS_SUCCESS  - The ACA process was successfully configured and started (if `ACAStart` was TRUE).
+ * @retval STATUS_FAILURE  - An error occurred during configuration or initialization.
+ * @retval STATUS_INPROGRESS - An ACA process is already running on the interface.
+ *
+ * @note
+ *    * If the `ACAStart` flag in `acaCfg` is set to `TRUE`, the ACA process will begin immediately.
+ *    * If `ACAStart` is `FALSE`, only the configuration parameters will be set, and the ACA process won't start.
+ *    * If an ACA process is already in progress on the interface, this function will return `STATUS_INPROGRESS`
+ *      and will not start a new ACA process.
+ */
 int moca_setIfAcaConfig(int interfaceIndex, moca_aca_cfg_t acaCfg);
 /****************************************************************/
 /* moca_GetIfAcaConfig() function */
 /**
-* @brief Gets the MoCA Configuration Parameters set before starting the ACA process.
-* @param[in] interfaceIndex - Index of the MoCA Interface.
-*                             \n It is an integer value and the range of acceptable values is 0 to (2^31)-1.
-* @param[out] acaCfg - A Pointer to the structure moca_aca_cfg_t which contains the MoCA ACA configurations to be set.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves the current MoCA ACA configuration parameters.
+ *
+ * This function fetches the configuration parameters that were set for the Automatic Channel Adaptation (ACA) process on the
+ * specified MoCA interface. The retrieved configuration is stored in the provided `acaCfg` structure.
+ *
+ * @param interfaceIndex The index of the MoCA interface.
+ * @param[out] acaCfg Pointer to a `moca_aca_cfg_t` structure to store the retrieved ACA configuration parameters.
+ *
+ * @return Status of the operation:
+ * @retval STATUS_SUCCESS - The operation was successful.
+ * @retval STATUS_FAILURE - An error occurred during the operation.
+ */
 int moca_getIfAcaConfig(int interfaceIndex, moca_aca_cfg_t *acaCfg);
 
 /****************************************************************/
 /* moca_cancelIfAca() function */
 /**
-* @brief this function uses to cancel the ACA process which already running.
-*
-* @param[in] interfaceIndex - Index of the MoCA Interface on which ACA process started.
-*                             \n It is an integer value and the range of acceptable values is 0 to (2^31)-1.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected
-*
-* @execution ASynchronous.
-*
-*/
+ * @brief Cancels an ongoing MoCA Automatic Channel Adaptation (ACA) process.
+ *
+ * This function terminates a currently running ACA process on the specified MoCA interface. 
+ * If no ACA process is active, it has no effect.
+ *
+ * @param interfaceIndex The index of the MoCA interface where the ACA process is running.
+ *
+ * @return Status of the operation:
+ * @retval STATUS_SUCCESS - The ACA process was successfully cancelled or was not running.
+ * @retval STATUS_FAILURE - An error occurred while attempting to cancel the ACA process.
+ */
 int moca_cancelIfAca(int interfaceIndex);
 
 
 /****************************************************************/
 /* moca_getIfAcaStatus() function */
 /**
-* @brief Gets the MoCA ACA status after the starting the ACA process.
-*
-* @param[in] interfaceIndex - Index of the MoCA Interface.
-*                             \n It is an integer value and the range of acceptable values is 0 to (2^31)-1.
-* @param[out] pacaStat - A Pointer to the structure moca_aca_stat_t which contains the MoCA ACA STAT configurations to be set.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-* @execution Synchronous.
-*
-*
-*/
+ * @brief Retrieves the status and results of a MoCA Automatic Channel Adaptation (ACA) process.
+ *
+ * This function fetches the current status, results, and configuration details of an ongoing or completed ACA process 
+ * on the specified MoCA interface. The retrieved information is stored in the provided `moca_aca_stat_t` structure.
+ *
+ * @param interfaceIndex The index of the MoCA interface.
+ * @param[out] pacaStat Pointer to a `moca_aca_stat_t` structure to store the retrieved ACA status and results.
+ *
+ * @return Status of the operation:
+ * @retval STATUS_SUCCESS - The operation was successful, and ACA status and results were retrieved.
+ * @retval STATUS_FAILURE - An error occurred during the operation, and no valid ACA information was obtained.
+ */
 int moca_getIfAcaStatus(int interfaceIndex,moca_aca_stat_t *pacaStat);
 
 /****************************************************************/
 /* moca_getIfScmod() function */
 /**
-* @brief Gets the MoCA SCMODE status after the starting the ACA process.
-*
-* @param[in] interfaceIndex - The index of the MOCA interface.
-*                             \n It is an integer value and the range of acceptable values is 0 to (2^31)-1.
-* @param[out] pnumOfEntries - A pointer to an integer that will be filled with the number of entries in the statistics array.
-*                             \n It is an integer value and the range of acceptable values is 0 to (2^31)-1.
-* @param[out] ppscmodStat - A Pointer to pointer to the structure moca_scmod_stat_t which contains the MoCA SCMODE configurations to be set.
-*
-* @return The status of the operation.
-* @retval STATUS_SUCCESS if successful.
-* @retval STATUS_FAILURE if any error is detected.
-*
-*
-*
-* @execution Synchronous.
-*
-*
-*/
-
+ * @brief Retrieves MoCA Subcarrier Modulation (SCMOD) statistics after an ACA process.
+ *
+ * This function fetches the SCMOD statistics collected after an Automatic Channel Adaptation (ACA) process on the specified MoCA interface. 
+ * These statistics provide detailed information about the modulation schemes and error rates for each subcarrier on the MoCA channel.
+ *
+ * @param interfaceIndex The index of the MoCA interface.
+ * @param[out] pnumOfEntries Pointer to an integer that will be filled with the number of entries in the `ppscmodStat` array.
+ * @param[out] ppscmodStat Pointer to a pointer that will be populated with an array of `moca_scmod_stat_t` structures. 
+ *                         Each structure contains SCMOD statistics for a pair of nodes on the MoCA network. 
+ *                         The caller is responsible for allocating memory for this array.
+ *
+ * @return Status of the operation:
+ * @retval STATUS_SUCCESS - The operation was successful, and SCMOD statistics were retrieved.
+ * @retval STATUS_FAILURE - An error occurred during the operation, and no valid SCMOD information was obtained.
+ */
 int moca_getIfScmod(int interfaceIndex,int *pnumOfEntries,moca_scmod_stat_t **ppscmodStat);
 
 
