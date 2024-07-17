@@ -75,7 +75,7 @@
 
 #ifndef __MOCA_HAL_H__
 #define __MOCA_HAL_H__
-
+// TODO: Remove these common types and include them from a common makefile.
 
 #ifndef ULONG
 #define ULONG unsigned long
