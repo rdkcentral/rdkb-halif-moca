@@ -30,16 +30,25 @@ if [ -z "${UT_PROJECT_VERSION}" ]; then
     UT_PROJECT_VERSION=main
 fi
 
-UT_DIR="./ut"
-
 # Simple help
 if [ "${1}" == "-h" ]; then
     echo "Script to build the unit testing suite"
     echo " build_ut.sh <clean> - clean the testing"
     echo " build_ut.sh TARGET=xxx - build the xxx version of the tests, linux/arm etc."
+    echo " build_ut.sh --dir xxx - Build Directory (must be first)"
     echo " build_ut.sh <noswitch> - build the linux version of tests using skeleton & stubs"
     exit 0
 fi
+
+PARAMS=$@
+if [ "${1}" == "--dir" ]; then
+# Remove the --dir & the command from the switches
+    shift
+    DIR=${1}
+    shift
+fi
+
+UT_DIR="${DIR}/ut"
 
 # Check if the common document configuration is present, if not clone it
 if [ -d ${UT_DIR} ]; then
@@ -47,10 +56,12 @@ if [ -d ${UT_DIR} ]; then
     ./build.sh $@
     popd > /dev/null
 else
-    echo "Cloning unit Test Suite for this module"
+    echo "Cloning unit Test Suite for this module [${DIR}]"
+    mkdir -p ${DIR}
+    pushd ${DIR} > /dev/null
     git clone ${TEST_REPO} ut
-    pushd ${UT_DIR} > /dev/null
+    cd ${UT_DIR}
     git checkout ${UT_PROJECT_VERSION}
     popd > /dev/null
-    ./${0} $@
+    ./${0} ${PARAMS}
 fi
