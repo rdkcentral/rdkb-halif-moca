@@ -506,41 +506,30 @@ void moca_associatedDevice_callback_register(moca_associatedDevice_callback call
  *    This was reported during the review for header file migration to opensource github.
  */ 
 
-/* moca_GetIfConfig() function */
-/**
 /**
 * @brief Gets the MoCA Configuration Parameters that were previously set.
 *
-* @param[in] ifIndex - Index of the MoCA Interface.
-*           \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
-* @param[out] pmoca_config - A pointer to structure of type moca_cfg_t for configuration parameters.
+* @param[in] ifIndex Index of the MoCA Interface.
+* @param[out] pmoca_config A pointer to structure of type moca_cfg_t for configuration parameters.
 *
 * @return The status of the operation.
 * @retval STATUS_SUCCESS - if successful.
 * @retval STATUS_FAILURE - if any error is detected.
-*
-* @execution Synchronous.
-*
 */
 INT moca_GetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
 
-/* moca_SetIfConfig() function */
 /**
  * @brief Sets the MoCA Configuration Parameters.
  *
- * @param[in] ifIndex - Index of the MoCA Interface.
- *                      \n It is an unsigned long value and the range of acceptable values is 0 to (2^32)-1 (inclusive).
- * @param[in] pmoca_config - A pointer to structure of type moca_cfg_t for configuration parameters.
+ * @param[in] ifIndex Index of the MoCA Interface.
+ * @param[in] pmoca_config A pointer to structure of type moca_cfg_t for configuration parameters.
  *
  * @return The status of the operation.
  * @retval STATUS_SUCCESS - if successful.
  * @retval STATUS_FAILURE - if any error is detected.
- *
- * @execution Synchronous.
  */
 INT moca_SetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
 
-/* moca_IfGetDynamicInfo() function */
 /**
  * @brief Gets the dynamic status information of a MoCA interface and its associated network.
  *
@@ -553,7 +542,6 @@ INT moca_SetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
  */
 INT moca_IfGetDynamicInfo(ULONG ifIndex, moca_dynamic_info_t *pmoca_dynamic_info);
 
-/* moca_IfGetStaticInfo() function */
 /**
  * @brief Retrieves static information about a MoCA interface.
  *
@@ -570,7 +558,6 @@ INT moca_IfGetDynamicInfo(ULONG ifIndex, moca_dynamic_info_t *pmoca_dynamic_info
  */
 INT moca_IfGetStaticInfo(ULONG ifIndex, moca_static_info_t *pmoca_static_info);
 
-/* moca_IfGetStats() function */
 /**
  * @brief Retrieves network layer statistics for a MoCA interface.
  *
@@ -586,7 +573,6 @@ INT moca_IfGetStaticInfo(ULONG ifIndex, moca_static_info_t *pmoca_static_info);
  */
 INT moca_IfGetStats(ULONG ifIndex, moca_stats_t *pmoca_stats);
 
-/* moca_GetNumAssociatedDevices() function */
 /**
  * @brief Retrieves the number of associated devices on a MoCA network.
  *
@@ -617,7 +603,6 @@ INT moca_GetNumAssociatedDevices(ULONG ifIndex, ULONG *pulCount);
  */
 INT moca_IfGetExtCounter(ULONG ifIndex, moca_mac_counters_t *pmoca_mac_counters);
 
-/* moca_IfGetExtAggrCounter() function */
 /**
  * @brief Retrieves aggregate transmit and receive data unit counters for a MoCA interface.
  *
@@ -633,7 +618,6 @@ INT moca_IfGetExtCounter(ULONG ifIndex, moca_mac_counters_t *pmoca_mac_counters)
  */
 INT moca_IfGetExtAggrCounter(ULONG ifIndex, moca_aggregate_counters_t *pmoca_aggregate_counts);
 
-/* moca_GetMocaCPEs() function */
 /**
  * @brief Retrieves the MAC addresses of all MoCA nodes on the network.
  *
@@ -652,7 +636,6 @@ INT moca_IfGetExtAggrCounter(ULONG ifIndex, moca_aggregate_counters_t *pmoca_agg
  */
 INT moca_GetMocaCPEs(ULONG ifIndex, moca_cpe_t *cpes, INT *pnum_cpes);
 
-/* moca_GetAssociatedDevices() function */
 /**
  * @brief Retrieves information about all associated devices on the MoCA network.
  *
@@ -670,8 +653,6 @@ INT moca_GetMocaCPEs(ULONG ifIndex, moca_cpe_t *cpes, INT *pnum_cpes);
  */
 INT moca_GetAssociatedDevices(ULONG ifIndex, moca_associated_device_t **ppdevice_array);
 
-
-/* moca_FreqMaskToValue() function */
 /**
  * @brief Converts a frequency mask to a frequency value.
  *
@@ -686,10 +667,8 @@ INT moca_GetAssociatedDevices(ULONG ifIndex, moca_associated_device_t **ppdevice
  *
  * @note The interpretation of the frequency mask and the range of valid output values may be vendor-specific.
  */
-//INT moca_FreqMaskToValue(UINT mask);
 INT moca_FreqMaskToValue(UCHAR *mask);
 
-/* moca_HardwareEquipped() function */
 /**
  * @brief Checks if MoCA hardware is equipped and available.
  *
@@ -699,7 +678,6 @@ INT moca_FreqMaskToValue(UCHAR *mask);
  */
 BOOL moca_HardwareEquipped(void);
 
-/* moca_GetFullMeshRates() function */
 #ifndef MOCA_VAR
 /**
  * @brief Retrieves MoCA full mesh PHY rates.
@@ -721,7 +699,6 @@ BOOL moca_HardwareEquipped(void);
 INT moca_GetFullMeshRates(ULONG ifIndex, moca_mesh_table_t *pDeviceArray, ULONG *pulCount);
 #endif
 
-/* moca_GetFlowStatistics() function */
 /**
  * @brief Retrieves MoCA flow statistics.
  *
@@ -739,24 +716,20 @@ INT moca_GetFullMeshRates(ULONG ifIndex, moca_mesh_table_t *pDeviceArray, ULONG 
  */
 INT moca_GetFlowStatistics(ULONG ifIndex, moca_flow_table_t *pDeviceArray, ULONG *pulCount);
 
-/* moca_GetResetCount() function */
 /**
  * @brief Retrieves the MoCA reset count.
  *
- * This function fetches the number of times the MoCA module has been reset. 
+ * This function fetches the number of times the MoCA module has been reset.
+ * If the operation fails, the value pointed to by `resetcnt` remains unchanged.
  *
  * @param[out] resetcnt Pointer to an unsigned long integer where the reset count will be stored.
  *
  * @return Status of the operation.
  * @retval STATUS_SUCCESS - The operation was successful.
  * @retval STATUS_FAILURE - An error occurred during the operation.
- *
- * @note If the operation fails, the value pointed to by `resetcnt` remains unchanged.
  */
 INT moca_GetResetCount(ULONG *resetcnt);
 
-/****************************************************************/
-/* moca_SetIfAcaConfig() function */
 /**
  * @brief Initiates the MoCA Automatic Channel Adaptation (ACA) process.
  *
@@ -779,8 +752,7 @@ INT moca_GetResetCount(ULONG *resetcnt);
  *      and will not start a new ACA process.
  */
 int moca_setIfAcaConfig(int interfaceIndex, moca_aca_cfg_t acaCfg);
-/****************************************************************/
-/* moca_GetIfAcaConfig() function */
+
 /**
  * @brief Retrieves the current MoCA ACA configuration parameters.
  *
@@ -796,8 +768,6 @@ int moca_setIfAcaConfig(int interfaceIndex, moca_aca_cfg_t acaCfg);
  */
 int moca_getIfAcaConfig(int interfaceIndex, moca_aca_cfg_t *acaCfg);
 
-/****************************************************************/
-/* moca_cancelIfAca() function */
 /**
  * @brief Cancels an ongoing MoCA Automatic Channel Adaptation (ACA) process.
  *
@@ -813,8 +783,6 @@ int moca_getIfAcaConfig(int interfaceIndex, moca_aca_cfg_t *acaCfg);
 int moca_cancelIfAca(int interfaceIndex);
 
 
-/****************************************************************/
-/* moca_getIfAcaStatus() function */
 /**
  * @brief Retrieves the status and results of a MoCA Automatic Channel Adaptation (ACA) process.
  *
@@ -830,8 +798,6 @@ int moca_cancelIfAca(int interfaceIndex);
  */
 int moca_getIfAcaStatus(int interfaceIndex,moca_aca_stat_t *pacaStat);
 
-/****************************************************************/
-/* moca_getIfScmod() function */
 /**
  * @brief Retrieves MoCA Subcarrier Modulation (SCMOD) statistics after an ACA process.
  *
@@ -849,7 +815,6 @@ int moca_getIfAcaStatus(int interfaceIndex,moca_aca_stat_t *pacaStat);
  * @retval STATUS_FAILURE - An error occurred during the operation, and no valid SCMOD information was obtained.
  */
 int moca_getIfScmod(int interfaceIndex,int *pnumOfEntries,moca_scmod_stat_t **ppscmodStat);
-
 
 /** @} */  //END OF GROUP MOCA_HAL_APIS
 #endif
