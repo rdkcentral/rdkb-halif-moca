@@ -145,11 +145,15 @@ Each API interface will be versioned using [Semantic Versioning 2.0.0](https://s
 
 ## MoCA HAL or Product Customization
 
-The product can be configured via the following compile time defines:
+When `MOCA_VAR` is defined in the provided header file, certain sections of the code are excluded from compilation. Here's what will happen:
 
-```c
-MOCA_VAR  #Disable the MoCA Variables
-```
+**Exclusion of `moca_if_status_t` Enumeration:** This enumeration defines possible states for a MoCA interface, such as IF_STATUS_Up, IF_STATUS_Down, and others. When `MOCA_VAR` is defined, these states are not declared, which means that any code relying on these specific MoCA interface states will not compile.
+
+**Exclusion of Dynamic Info Structure Definition:** The structure `moca_dynamic_info_t`, which contains dynamic information about a MoCA interface like its status, last change, max ingress and egress bandwidth, and so forth, is also excluded. This will affect the functionality that relies on obtaining or manipulating dynamic status information of MoCA interfaces.
+
+**Exclusion of MoCA Mesh Table Definition and Function:** The `moca_mesh_table_t` structure and associated functions like `moca_GetFullMeshRates` that provide information on the PHY rates between nodes in a MoCA network are not available. This limitation means that the software will lack the capability to fetch or manipulate full mesh PHY rates when `MOCA_VAR` is defined.
+
+These exclusions lead to a restricted set of functionalities related to interface status reporting, dynamic information management, and network-wide PHY rate information retrieval and handling.
 
 ## Interface API Documentation
 
