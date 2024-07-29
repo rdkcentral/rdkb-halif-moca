@@ -533,7 +533,7 @@ INT moca_SetIfConfig(ULONG ifIndex, moca_cfg_t *pmoca_config);
 /**
  * @brief Gets the dynamic status information of a MoCA interface and its associated network.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] pmoca_dynamic_info Pointer to a `moca_dynamic_info_t` structure to store the retrieved dynamic information.
  *
  * @return Status of the operation.
@@ -549,7 +549,7 @@ INT moca_IfGetDynamicInfo(ULONG ifIndex, moca_dynamic_info_t *pmoca_dynamic_info
  * from the specified MoCA interface. The retrieved information is populated into the provided
  * `moca_static_info_t` structure.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] pmoca_static_info Pointer to a `moca_static_info_t` structure to store the retrieved static information.
  *
  * @return Status of the operation.
@@ -564,7 +564,7 @@ INT moca_IfGetStaticInfo(ULONG ifIndex, moca_static_info_t *pmoca_static_info);
  * This function fetches statistics related to the network layer operation of a specified MoCA interface. 
  * The retrieved statistics are populated into the provided `moca_stats_t` structure.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] pmoca_stats Pointer to a `moca_stats_t` structure to store the retrieved statistics.
  *
  * @return Status of the operation.
@@ -578,7 +578,7 @@ INT moca_IfGetStats(ULONG ifIndex, moca_stats_t *pmoca_stats);
  *
  * This function returns the count of devices connected to the MoCA network associated with the specified interface.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] pulCount Pointer to an unsigned long integer to store the retrieved number of associated devices.
  *
  * @return Status of the operation.
@@ -587,14 +587,13 @@ INT moca_IfGetStats(ULONG ifIndex, moca_stats_t *pmoca_stats);
  */
 INT moca_GetNumAssociatedDevices(ULONG ifIndex, ULONG *pulCount);
 
-/* moca_IfGetExtCounter() function */
 /**
  * @brief Retrieves MoCA MAC layer statistics for an interface.
  *
  * This function fetches statistical counters related to the MoCA MAC layer for the specified interface.
  * The retrieved counters are populated into the provided `moca_mac_counters_t` structure.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] pmoca_mac_counters Pointer to a `moca_mac_counters_t` structure to store the retrieved MAC layer statistics.
  *
  * @return Status of the operation.
@@ -609,7 +608,7 @@ INT moca_IfGetExtCounter(ULONG ifIndex, moca_mac_counters_t *pmoca_mac_counters)
  * This function fetches the aggregate counts of transmitted and received data units (excluding MoCA control packets) 
  * for the specified MoCA interface. The retrieved counters are populated into the provided `moca_aggregate_counters_t` structure.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] pmoca_aggregate_counts Pointer to a `moca_aggregate_counters_t` structure to store the retrieved counters.
  *
  * @return Status of the operation.
@@ -625,7 +624,7 @@ INT moca_IfGetExtAggrCounter(ULONG ifIndex, moca_aggregate_counters_t *pmoca_agg
  * connected to the MoCA network associated with the specified interface. The retrieved MAC 
  * addresses are stored in the provided `cpes` array, and the count of nodes is returned in `pnum_cpes`.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] cpes Array of `moca_cpe_t` structures to store the retrieved MAC addresses. 
  *                  The array should be pre-allocated with enough space for `kMoca_MaxCpeList` (256) entries.
  * @param[out] pnum_cpes Pointer to an integer variable to store the number of MoCA nodes found on the network.
@@ -642,7 +641,7 @@ INT moca_GetMocaCPEs(ULONG ifIndex, moca_cpe_t *cpes, INT *pnum_cpes);
  * This function fetches detailed information about each MoCA device connected to the network associated with the specified interface. 
  * The retrieved data includes MAC addresses, node IDs, PHY rates, power levels, and more.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] ppdevice_array Pointer to a pointer that will be populated with an array of `moca_associated_device_t` structures. 
  *                            Each structure in the array contains information about a single associated device. 
  *                            The caller is responsible for allocating memory for this array.
@@ -660,10 +659,10 @@ INT moca_GetAssociatedDevices(ULONG ifIndex, moca_associated_device_t **ppdevice
  * and returns the corresponding frequency value. The specific interpretation
  * of the mask and the resulting frequency value may be vendor-specific.
  *
- * @param mask Pointer to an array of bytes (`UCHAR`) representing the frequency mask.
- *             The buffer size should be at least 16 bytes and is vendor-dependent.
+ * @param mask[in] Pointer to an array of bytes (`UCHAR`) representing the frequency mask.
+ *                 The buffer size should be at least 16 bytes and is vendor-dependent.
  *
- * @return Frequency value corresponding to the given mask if successful, otherwise STATUS_FAILURE.
+ * @return Frequency value corresponding to the given mask if successful.
  *
  * @note The interpretation of the frequency mask and the range of valid output values may be vendor-specific.
  */
@@ -685,7 +684,7 @@ BOOL moca_HardwareEquipped(void);
  * This function fetches the complete mesh PHY (physical layer) rates between all pairs of MoCA nodes on the network associated with the specified interface.
  * The retrieved rates are stored in the provided `pDeviceArray`, and the number of entries in the array is returned in `pulCount`.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] pDeviceArray Pointer to a `moca_mesh_table_t` array to store the retrieved mesh PHY rate table. 
  *                          The caller must allocate enough memory for this array to hold entries for all possible node pairs.
  * @param[out] pulCount Pointer to an unsigned long integer to store the number of entries written to the `pDeviceArray`.
@@ -705,7 +704,7 @@ INT moca_GetFullMeshRates(ULONG ifIndex, moca_mesh_table_t *pDeviceArray, ULONG 
  * This function fetches the entries in the MoCA flow table, which contains statistics for
  * ingress PQoS (Priority Quality of Service) flows on the specified MoCA interface.
  *
- * @param ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
+ * @param[in] ifIndex The index of the MoCA interface (0 for a single interface, 1-256 for multiple interfaces).
  * @param[out] pDeviceArray Pointer to a `moca_flow_table_t` array to store the retrieved flow table entries. 
  *                          The caller must allocate enough memory for this array to hold all entries.
  * @param[out] pulCount Pointer to an unsigned long integer to store the number of entries written to the `pDeviceArray`.
@@ -736,7 +735,7 @@ INT moca_GetResetCount(ULONG *resetcnt);
  * This function configures and potentially starts the ACA process on the specified MoCA interface. The ACA process
  * automatically selects the best operating channel for the MoCA network.
  *
- * @param interfaceIndex The index of the MoCA interface.
+ * @param[in] interfaceIndex The index of the MoCA interface.
  * @param[in] acaCfg Configuration parameters for the ACA process (see `moca_aca_cfg_t`). 
  *                   Setting the `ACAStart` member to `TRUE` will trigger the ACA process.
  *
@@ -759,7 +758,7 @@ int moca_setIfAcaConfig(int interfaceIndex, moca_aca_cfg_t acaCfg);
  * This function fetches the configuration parameters that were set for the Automatic Channel Adaptation (ACA) process on the
  * specified MoCA interface. The retrieved configuration is stored in the provided `acaCfg` structure.
  *
- * @param interfaceIndex The index of the MoCA interface.
+ * @param[in] interfaceIndex The index of the MoCA interface.
  * @param[out] acaCfg Pointer to a `moca_aca_cfg_t` structure to store the retrieved ACA configuration parameters.
  *
  * @return Status of the operation:
@@ -774,7 +773,7 @@ int moca_getIfAcaConfig(int interfaceIndex, moca_aca_cfg_t *acaCfg);
  * This function terminates a currently running ACA process on the specified MoCA interface. 
  * If no ACA process is active, it has no effect.
  *
- * @param interfaceIndex The index of the MoCA interface where the ACA process is running.
+ * @param[in] interfaceIndex The index of the MoCA interface where the ACA process is running.
  *
  * @return Status of the operation:
  * @retval STATUS_SUCCESS - The ACA process was successfully cancelled or was not running.
@@ -789,7 +788,7 @@ int moca_cancelIfAca(int interfaceIndex);
  * This function fetches the current status, results, and configuration details of an ongoing or completed ACA process 
  * on the specified MoCA interface. The retrieved information is stored in the provided `moca_aca_stat_t` structure.
  *
- * @param interfaceIndex The index of the MoCA interface.
+ * @param[in] interfaceIndex The index of the MoCA interface.
  * @param[out] pacaStat Pointer to a `moca_aca_stat_t` structure to store the retrieved ACA status and results.
  *
  * @return Status of the operation:
@@ -804,7 +803,7 @@ int moca_getIfAcaStatus(int interfaceIndex,moca_aca_stat_t *pacaStat);
  * This function fetches the SCMOD statistics collected after an Automatic Channel Adaptation (ACA) process on the specified MoCA interface. 
  * These statistics provide detailed information about the modulation schemes and error rates for each subcarrier on the MoCA channel.
  *
- * @param interfaceIndex The index of the MoCA interface.
+ * @param[in] interfaceIndex The index of the MoCA interface.
  * @param[out] pnumOfEntries Pointer to an integer that will be filled with the number of entries in the `ppscmodStat` array.
  * @param[out] ppscmodStat Pointer to a pointer that will be populated with an array of `moca_scmod_stat_t` structures. 
  *                         Each structure contains SCMOD statistics for a pair of nodes on the MoCA network. 
